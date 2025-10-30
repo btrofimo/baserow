@@ -47,6 +47,7 @@ from baserow.contrib.database.table.cache import (
 )
 from baserow.contrib.database.table.constants import (
     CREATED_BY_COLUMN_NAME,
+    FIELD_METADATA_COLUMN_NAME,
     LAST_MODIFIED_BY_COLUMN_NAME,
     ROW_NEEDS_BACKGROUND_UPDATE_COLUMN_NAME,
     USER_TABLE_DATABASE_NAME_PREFIX,
@@ -903,6 +904,12 @@ class Table(
         default=True,
         help_text="Indicates whether potentially missing m2m foreign key indexes have been added.",
     )
+    field_metadata_column_added = models.BooleanField(
+        db_default=False,
+        default=False,
+        null=True,
+        help_text="Indicates whether the table has had the field_metadata column added.",
+    )
 
     class Meta:
         ordering = ("order",)
@@ -1141,6 +1148,9 @@ class Table(
         if self.field_rules_validity_column_added:
             self._add_field_rules_valid(field_attrs, indexes)
 
+        if self.field_metadata_column_added:
+            self._add_field_metadata(field_attrs, indexes)
+
         attrs.update(**field_attrs)
 
         # Create the model class.
@@ -1196,6 +1206,23 @@ class Table(
 
         column = FieldRuleHandler.get_state_column()
         field_attrs[FieldRuleHandler.STATE_COLUMN_NAME] = column
+        return field_attrs
+
+    def _add_field_metadata(self, field_attrs, indexes):
+        """
+        Add the field_metadata JSONB column to the generated table model.
+
+        This column stores metadata for all fields in a row using a JSON structure
+        where field IDs are keys. This allows any field type to store status,
+        error information, timestamps, or other metadata about their values.
+        """
+        field_attrs[FIELD_METADATA_COLUMN_NAME] = JSONField(
+            null=False,
+            blank=True,
+            default=dict,
+            db_default={},
+            help_text="Stores metadata for all fields in this row (e.g., AI generation status, validation states)",
+        )
         return field_attrs
 
     @baserow_trace(tracer)
