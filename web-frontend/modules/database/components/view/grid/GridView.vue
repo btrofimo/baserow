@@ -683,6 +683,8 @@ export default {
     this.$store.dispatch(
       this.storePrefix + 'view/grid/clearAndDisableMultiSelect'
     )
+
+    this.$store.dispatch('rowMetadata/clearTable', { tableId: this.table.id })
   },
   methods: {
     /**
