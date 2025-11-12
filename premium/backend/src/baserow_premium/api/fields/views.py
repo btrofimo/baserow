@@ -1,5 +1,12 @@
 from django.db import transaction
 
+from baserow_premium.fields.actions import GenerateFormulaWithAIActionType
+from baserow_premium.fields.exceptions import AiFieldOutputParserException
+from baserow_premium.fields.handler import AIFieldHandler
+from baserow_premium.fields.job_types import GenerateAIValuesJobType
+from baserow_premium.fields.models import AIField
+from baserow_premium.license.features import PREMIUM
+from baserow_premium.license.handler import LicenseHandler
 from drf_spectacular.openapi import OpenApiParameter, OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -108,8 +115,6 @@ class AsyncGenerateAIFieldValuesView(APIView):
     )
     @validate_body(GenerateAIFieldValueViewSerializer, return_validated=True)
     def post(self, request: Request, field_id: int, data) -> Response:
-        from baserow_premium.fields.handler import AIFieldHandler
-
         ai_field = FieldHandler().get_field(
             field_id,
             base_queryset=AIField.objects.all().select_related(

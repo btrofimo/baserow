@@ -1,6 +1,7 @@
 from collections.abc import Iterator
 from concurrent.futures import Executor, ThreadPoolExecutor
 from queue import Empty, Queue
+from django.db import transaction
 from typing import Any, Type
 
 from django.contrib.auth.models import AbstractUser
@@ -14,13 +15,17 @@ from baserow.contrib.database.api.fields.errors import ERROR_FIELD_DOES_NOT_EXIS
 from baserow.contrib.database.api.views.errors import ERROR_VIEW_DOES_NOT_EXIST
 from baserow.contrib.database.fields.exceptions import FieldDoesNotExist
 from baserow.contrib.database.fields.handler import FieldHandler
+from baserow.contrib.database.fields.metadata_handler import FieldMetadataHandler
 from baserow.contrib.database.fields.operations import ListFieldsOperationType
 from baserow.contrib.database.rows.exceptions import RowDoesNotExist
 from baserow.contrib.database.rows.handler import RowHandler
 from baserow.contrib.database.rows.runtime_formula_contexts import (
     HumanReadableRowContext,
 )
-from baserow.contrib.database.rows.signals import rows_ai_values_generation_error
+from baserow.contrib.database.rows.signals import (
+    rows_ai_values_generation_error,
+    rows_metadata_updated,
+)
 from baserow.contrib.database.table.models import GeneratedTableModel
 from baserow.contrib.database.views.exceptions import ViewDoesNotExist
 from baserow.contrib.database.views.handler import ViewHandler
@@ -42,6 +47,7 @@ from baserow.core.jobs.registries import JobType
 from baserow.core.utils import ChildProgressBuilder, Progress
 from baserow_premium.generative_ai.managers import AIFileManager
 
+from .ai_field_metadata import AIFieldMetadataHandler
 from .models import AIField, GenerateAIValuesJob
 from .registries import ai_field_output_registry
 
@@ -361,6 +367,22 @@ class AIValueGenerator:
             raise exc
 
         self.ai_output_type = ai_field_output_registry.get(self.ai_field.ai_output_type)
+
+        # Check if metadata tracking is enabled for this table
+        has_metadata_column = FieldMetadataHandler.is_metadata_enabled(model)
+
+        # Get all row IDs that will be processed and mark them as generating
+        # This happens BEFORE the loop so users see the generating state immediately
+        if has_metadata_column:
+            row_ids = list(rows.values_list("id", flat=True))
+            if row_ids:
+                AIFieldMetadataHandler.set_generating_for_rows(ai_field, row_ids)
+                rows_metadata_updated.send(
+                    sender=self,
+                    table=table,
+                    row_ids=row_ids,
+                    user=user,
+                )
 
         self.use_file_fields = (
             self.ai_field.ai_file_field_id is not None

@@ -81,6 +81,7 @@ def view_loaded_create_indexes_and_columns(sender, view, table_model, **kwargs):
     from baserow.contrib.database.table.tasks import (
         setup_created_by_and_last_modified_by_column,
         setup_m2m_field_indexes_if_not_exist,
+        setup_field_metadata_column,
     )
     from baserow.contrib.database.views.handler import ViewIndexingHandler
 
@@ -91,6 +92,12 @@ def view_loaded_create_indexes_and_columns(sender, view, table_model, **kwargs):
         setup_created_by_and_last_modified_by_column.delay(table_id=view.table.id)
     if not table.missing_m2m_indexes_added:
         setup_m2m_field_indexes_if_not_exist.delay(table_id=view.table_id)
+
+    if not table.field_metadata_column_added:
+        setup_field_metadata_column.delay(table_id=view.table.id)
+
+    if not table.field_metadata_column_added:
+        setup_field_metadata_column.delay(table_id=view.table.id)
 
 
 @receiver(field_signals.fields_type_changed)
