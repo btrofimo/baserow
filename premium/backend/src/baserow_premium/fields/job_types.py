@@ -1,10 +1,10 @@
 from collections.abc import Iterator
 from concurrent.futures import Executor, ThreadPoolExecutor
 from queue import Empty, Queue
-from django.db import transaction
 from typing import Any, Type
 
 from django.contrib.auth.models import AbstractUser
+from django.db import transaction
 from django.db.models import QuerySet
 
 from loguru import logger
@@ -44,7 +44,7 @@ from baserow.core.handler import CoreHandler
 from baserow.core.job_types import _empty_transaction_context
 from baserow.core.jobs.exceptions import MaxJobCountExceeded
 from baserow.core.jobs.registries import JobType
-from baserow.core.utils import ChildProgressBuilder, Progress
+from baserow.core.utils import ChildProgressBuilder, Progress, grouper
 from baserow_premium.generative_ai.managers import AIFileManager
 
 from .ai_field_metadata import AIFieldMetadataHandler
@@ -89,6 +89,7 @@ class GenerateAIValuesJobType(JobType):
     type = "generate_ai_values"
     model_class = GenerateAIValuesJob
     max_count = 3
+    AI_GENERATION_BATCH_SIZE = 50
 
     api_exceptions_map = {
         UserNotInWorkspace: ERROR_USER_NOT_IN_GROUP,
@@ -266,7 +267,7 @@ class GenerateAIValuesJobType(JobType):
         if job.mode == GenerateAIValuesJob.MODES.VIEW:
             rows = self._get_view_queryset(user, job.view_id, table.id)
         elif job.mode == GenerateAIValuesJob.MODES.TABLE:
-            rows = model.objects.all()
+            rows = model.objects.all().order_by("id")
         elif job.mode == GenerateAIValuesJob.MODES.ROWS:
             req_row_ids = job.row_ids
             rows = RowHandler().get_rows(model, req_row_ids)
@@ -368,19 +369,29 @@ class AIValueGenerator:
 
         self.ai_output_type = ai_field_output_registry.get(self.ai_field.ai_output_type)
 
-        # Check if metadata tracking is enabled for this table
         has_metadata_column = FieldMetadataHandler.is_metadata_enabled(model)
 
-        # Get all row IDs that will be processed and mark them as generating
-        # This happens BEFORE the loop so users see the generating state immediately
-        if has_metadata_column:
-            row_ids = list(rows.values_list("id", flat=True))
-            if row_ids:
-                AIFieldMetadataHandler.set_generating_for_rows(ai_field, row_ids)
+        total_rows = rows.count()
+
+        progress_builder = progress.create_child_builder(
+            represents_progress=progress.total
+        )
+        rows_progress = ChildProgressBuilder.build(progress_builder, total_rows)
+
+        if total_rows == 0:
+            return
+
+        row_iterator = rows.iterator(chunk_size=self.AI_GENERATION_BATCH_SIZE)
+
+        for batch_rows in grouper(self.AI_GENERATION_BATCH_SIZE, row_iterator):
+            batch_row_ids = [row.id for row in batch_rows]
+
+            if has_metadata_column:
+                AIFieldMetadataHandler.set_generating_for_rows(ai_field, batch_row_ids)
                 rows_metadata_updated.send(
                     sender=self,
                     table=table,
-                    row_ids=row_ids,
+                    row_ids=batch_row_ids,
                     user=user,
                 )
 
