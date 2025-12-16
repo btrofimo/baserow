@@ -1,6 +1,7 @@
 import { notifyIf } from '@baserow/modules/core/utils/error'
 
 import FieldService from '@baserow_premium/services/field'
+import { AI_FIELD_STATUS } from '@baserow_premium/constants'
 
 export default {
   data() {
@@ -12,19 +13,17 @@ export default {
     workspace() {
       return this.$store.getters['workspace/get'](this.workspaceId)
     },
-    table() {
-      // Get table from parent RowEditModalField component
-      return this.$parent.$parent.table
-    },
     generating() {
-      // Check rowMetadata store for generating status from websocket updates
-      const status = this.$store.getters['rowMetadata/getAIFieldStatus'](
-        this.table.id,
-        this.row.id,
-        this.field.id
-      )
+      // Check row metadata for generating status from websocket updates
+      const metadata = this.row?._.metadata
+      if (metadata && metadata.ai_field) {
+        const fieldMetadata = metadata.ai_field[this.field.id]
+        if (fieldMetadata?.status === AI_FIELD_STATUS.GENERATING) {
+          return true
+        }
+      }
       // Combine with local state for immediate feedback when user clicks generate
-      return status === 'generating' || this.localGenerating
+      return this.localGenerating
     },
     modelAvailable() {
       const aIModels =
@@ -60,7 +59,7 @@ export default {
       this.localGenerating = true
       try {
         await FieldService(this.$client).generateAIFieldValues(this.field.id, [
-          this.$parent.row.id,
+          this.row.id,
         ])
       } catch (error) {
         notifyIf(error, 'field')

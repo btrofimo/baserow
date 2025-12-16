@@ -912,10 +912,34 @@ class TableHandler(metaclass=baserow_trace_methods(tracer)):
             update_fields=["created_by_column_added", "last_modified_by_column_added"]
         )
 
+    def _column_exists(self, table_name: str, column_name: str) -> bool:
+        """
+        Check if a column exists in the database table.
+
+        :param table_name: The name of the database table.
+        :param column_name: The name of the column to check.
+        :return: True if the column exists, False otherwise.
+        """
+
+        from django.db import connection
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = %s AND column_name = %s
+                )
+                """,
+                [table_name, column_name],
+            )
+            return cursor.fetchone()[0]
+
     def create_field_metadata_column(self, table: Table):
         """
         Creates the field_metadata JSONB column for the provided table if it
-        has not yet been created.
+        has not yet been created. Also creates a GIN index on the column for
+        efficient metadata queries.
 
         This column stores metadata for all fields in a row using a JSON structure
         where field IDs are keys. This allows any field type to store status,
@@ -927,11 +951,36 @@ class TableHandler(metaclass=baserow_trace_methods(tracer)):
         if table.field_metadata_column_added:
             return
 
+        table_name = table.get_database_table_name()
+
+        # Check if column already exists in database (handles race conditions
+        # when multiple tasks try to create the column concurrently)
+        if not self._column_exists(table_name, FIELD_METADATA_COLUMN_NAME):
+            model = table.get_model(use_cache=False, field_ids=[])
+            with safe_django_schema_editor(atomic=False) as schema_editor:
+                field_metadata_field = model._meta.get_field(FIELD_METADATA_COLUMN_NAME)
+                schema_editor.add_field(model, field_metadata_field)
+
+        self._create_field_metadata_gin_index(table)
+
         table.field_metadata_column_added = True
-        model = table.get_model(use_cache=False, field_ids=[])
-
-        with safe_django_schema_editor(atomic=False) as schema_editor:
-            field_metadata_field = model._meta.get_field(FIELD_METADATA_COLUMN_NAME)
-            schema_editor.add_field(model, field_metadata_field)
-
         table.save(update_fields=["field_metadata_column_added"])
+
+    def _create_field_metadata_gin_index(self, table: Table):
+        """
+        Creates a GIN index on the field_metadata column for efficient
+        JSONB containment and existence queries.
+
+        :param table: Table to create the index for.
+        """
+
+        from django.db import connection
+
+        table_name = table.get_database_table_name()
+        index_name = f"tbl_{table.id}_field_metadata_gin_idx"
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f'CREATE INDEX IF NOT EXISTS "{index_name}" '
+                f'ON "{table_name}" USING GIN ("{FIELD_METADATA_COLUMN_NAME}")'
+            )

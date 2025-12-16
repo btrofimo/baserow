@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from django.utils import timezone
 
@@ -16,23 +16,23 @@ class AIFieldMetadataType(RowMetadataType):
     """
     Row metadata type for AI fields.
 
-    Returns metadata for all AI fields in a table, showing status as a single
-    letter for error/generating states. Metadata is stored in the field_metadata
+    Returns metadata for all AI fields in a table, showing status for
+    generating/error states. Metadata is stored in the field_metadata
     JSONB column and transformed to a simplified format for the API.
 
     Example response structure:
     {
         "row_metadata": {
             "ai_field": {
-                "456": "g",  // field_id: status letter (g = generating)
-                "457": "e"   // field_id: status letter (e = error)
+                "456": {"status": "generating"},
+                "457": {"status": "error"}
             }
         }
     }
 
-    Status letters:
-    - "g": generating
-    - "e": error (only shown for a limited time after error occurs)
+    Status values:
+    - "generating": AI is currently generating a value
+    - "error": generation failed (only shown for a limited time)
 
     Success and pending states are not included in the response.
     """
@@ -60,81 +60,81 @@ class AIFieldMetadataType(RowMetadataType):
 
         model = table.get_model()
 
-        if not FieldMetadataHandler.is_metadata_enabled(model):
+        if not FieldMetadataHandler.is_metadata_available(model):
             return {}
 
-        rows = model.objects.filter(id__in=row_ids).only(
-            "id", FieldMetadataHandler.METADATA_COLUMN
+        ai_field_ids = [f.id for f in ai_fields]
+        metadata_result = FieldMetadataHandler.get_metadata(
+            model, row_ids, ai_field_ids
         )
 
         result = {}
-        for row in rows:
+        for row_id, fields_metadata in metadata_result.items():
             row_metadata = {}
 
-            for ai_field in ai_fields:
-                field_metadata = FieldMetadataHandler.get_metadata(row, ai_field.id)
-
+            for field_id, field_metadata in fields_metadata.items():
                 if field_metadata:
-                    status_letter = self._transform_metadata_for_api(field_metadata)
-                    # Only add to result if there's a status letter to show
-                    if status_letter:
-                        row_metadata[str(ai_field.id)] = status_letter
+                    api_metadata = self._transform_metadata_for_api(field_metadata)
+                    # Only add to result if there's metadata to show
+                    if api_metadata:
+                        row_metadata[str(field_id)] = api_metadata
 
             if row_metadata:
-                result[row.id] = row_metadata
+                result[row_id] = row_metadata
 
         return result
 
-    def _transform_metadata_for_api(self, metadata: Dict[str, Any]) -> str:
+    def _transform_metadata_for_api(
+        self, metadata: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         """
-        Transform internal short-key metadata to a single status letter for API.
+        Transform internal metadata to API format.
 
-        Only returns a status letter for generating or error states.
+        Only returns metadata for generating or error states.
         Error state is only returned if it occurred within ERROR_EXPIRATION_SECONDS.
 
-        Storage format: {"s": 1, "gsa": 1234.5}
-        API format: "g" (single letter)
+        Storage format: {"start": 1234.5, "end": 1234.5, "ok": True/False}
+        API format: {"status": "generating"} or {"status": "error"}
 
-        :param metadata: Internal metadata with short keys
-        :return: Single letter status ("g" for generating, "e" for error) or None
+        :param metadata: Internal metadata
+        :return: Dictionary with status or None if no status to show
         """
 
-        if AIMetadataKeys.STATUS not in metadata:
-            return None
+        status_enum = AIGenerationStatus.from_metadata(metadata)
 
-        status_value = metadata[AIMetadataKeys.STATUS]
-        status_enum = AIGenerationStatus(status_value)
+        if status_enum is None:
+            return None
 
         # Only return status for generating or error states
         if status_enum == AIGenerationStatus.GENERATING:
-            return "g"
+            return {"status": "generating"}
         elif status_enum == AIGenerationStatus.ERROR:
-            generation_finished_at = metadata.get(AIMetadataKeys.GENERATION_FINISHED_AT)
+            generation_finished_at = metadata.get(AIMetadataKeys.END)
             if generation_finished_at:
                 current_time = timezone.now().timestamp()
                 time_since_error = current_time - generation_finished_at
 
                 if time_since_error <= self.ERROR_EXPIRATION_SECONDS:
-                    return "e"
+                    return {"status": "error"}
 
             # Error has expired or no timestamp, don't show it
             return None
 
-        # Success or pending states are not shown
+        # Success state is not shown
         return None
 
     def get_example_serializer_field(self) -> Field:
         """
         Return example serializer field for API documentation.
 
-        The field represents a dictionary mapping field_id -> single status letter.
+        The field represents a dictionary mapping field_id -> status object.
         """
 
         return serializers.DictField(
-            child=serializers.CharField(),
+            child=serializers.DictField(child=serializers.CharField()),
             help_text=(
                 "AI field status indicators keyed by field ID. "
-                "Values are single letters: 'g' (generating), 'e' (error). "
+                "Values are objects with 'status' key: 'generating' or 'error'. "
                 "Only fields with generating or recent error status are included. "
                 "Errors expire after 1 hour."
             ),

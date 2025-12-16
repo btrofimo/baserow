@@ -3,6 +3,7 @@ from concurrent.futures import Executor, ThreadPoolExecutor
 from queue import Empty, Queue
 from typing import Any, Type
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import transaction
 from django.db.models import QuerySet
@@ -44,7 +45,7 @@ from baserow.core.handler import CoreHandler
 from baserow.core.job_types import _empty_transaction_context
 from baserow.core.jobs.exceptions import MaxJobCountExceeded
 from baserow.core.jobs.registries import JobType
-from baserow.core.utils import ChildProgressBuilder, Progress, grouper
+from baserow.core.utils import ChildProgressBuilder, Progress
 from baserow_premium.generative_ai.managers import AIFileManager
 
 from .ai_field_metadata import AIFieldMetadataHandler
@@ -89,7 +90,6 @@ class GenerateAIValuesJobType(JobType):
     type = "generate_ai_values"
     model_class = GenerateAIValuesJob
     max_count = 3
-    AI_GENERATION_BATCH_SIZE = 50
 
     api_exceptions_map = {
         UserNotInWorkspace: ERROR_USER_NOT_IN_GROUP,
@@ -283,7 +283,12 @@ class GenerateAIValuesJobType(JobType):
 
         rows_progress = ChildProgressBuilder.build(progress_builder, rows.count())
         generator = AIValueGenerator(user, ai_field, self, rows_progress)
-        generator.process(rows.order_by("id"))
+        try:
+            generator.process(rows.order_by("id"))
+        finally:
+            # Ensure cleanup runs even on cancellation (JobCancelled exception).
+            # This clears "generating" spinners for rows that were never processed.
+            generator._cleanup_unprocessed_rows()
 
 
 class AIValueGenerator:
@@ -338,6 +343,20 @@ class AIValueGenerator:
         self.row_handler = RowHandler()
         self.progress = progress
 
+        # Track all row IDs that were set as "generating".
+        # Used to clear metadata for unprocessed rows if an error or cancellation
+        # occurs.
+        self.all_row_ids_with_generating_status: list[int] = []
+
+        # Track row IDs that have been scheduled (started processing).
+        self.scheduled_row_ids: set[int] = set()
+
+        # Buffer for collecting rows before setting metadata in chunks
+        self.pending_rows_buffer: list[GeneratedTableModel] = []
+
+        # Chunk size for batching WS messages (aligned with DB iterator chunk_size)
+        self.chunk_size = settings.BATCH_ROWS_SIZE_LIMIT
+
         self.prepare()
 
     def prepare(self):
@@ -369,31 +388,9 @@ class AIValueGenerator:
 
         self.ai_output_type = ai_field_output_registry.get(self.ai_field.ai_output_type)
 
-        has_metadata_column = FieldMetadataHandler.is_metadata_enabled(model)
-
-        total_rows = rows.count()
-
-        progress_builder = progress.create_child_builder(
-            represents_progress=progress.total
+        self.has_metadata_column = FieldMetadataHandler.is_metadata_available(
+            self.model
         )
-        rows_progress = ChildProgressBuilder.build(progress_builder, total_rows)
-
-        if total_rows == 0:
-            return
-
-        row_iterator = rows.iterator(chunk_size=self.AI_GENERATION_BATCH_SIZE)
-
-        for batch_rows in grouper(self.AI_GENERATION_BATCH_SIZE, row_iterator):
-            batch_row_ids = [row.id for row in batch_rows]
-
-            if has_metadata_column:
-                AIFieldMetadataHandler.set_generating_for_rows(ai_field, batch_row_ids)
-                rows_metadata_updated.send(
-                    sender=self,
-                    table=table,
-                    row_ids=batch_row_ids,
-                    user=user,
-                )
 
         self.use_file_fields = (
             self.ai_field.ai_file_field_id is not None
@@ -508,6 +505,21 @@ class AIValueGenerator:
 
         self.stop_scheduling_rows()
 
+        if self.has_metadata_column:
+            with transaction.atomic():
+                AIFieldMetadataHandler.set_error(
+                    self.model,
+                    row.id,
+                    self.ai_field.id,
+                    str(exc),
+                )
+            rows_metadata_updated.send(
+                sender=self,
+                table=self.table,
+                row_ids=[row.id],
+                user=self.user,
+            )
+
         if not self.has_errors:
             rows_ai_values_generation_error.send(
                 self,
@@ -523,15 +535,63 @@ class AIValueGenerator:
     def update_value(self, row: GeneratedTableModel, value: Any):
         """
         Updates AI field value for the row with the value returned from the AI model.
+
+        Uses direct model update instead of row_handler.update_row_by_id() to avoid
+        triggering the rows_updated signal. Instead, we manually send the websocket
+        message via Celery broadcast.
         """
 
-        self.row_handler.update_row_by_id(
-            self.user,
-            self.table,
-            row.id,
-            {self.ai_field.db_column: value},
-            model=self.model,
-            values_already_prepared=True,
+        with transaction.atomic():
+            if self.has_metadata_column:
+                AIFieldMetadataHandler.set_success(self.model, row.id, self.ai_field.id)
+
+            # Direct model update to avoid triggering rows_updated signal
+            self.model.objects.filter(id=row.id).update(
+                **{self.ai_field.db_column: value}
+            )
+
+        # Refresh the row to get the updated value for broadcasting
+        row.refresh_from_db()
+
+        # Send websocket update via Celery broadcast
+        self._broadcast_row_updated(row)
+
+    def _broadcast_row_updated(self, row: GeneratedTableModel):
+        """
+        Send rows_updated websocket message via Celery broadcast.
+        """
+
+        from baserow.contrib.database.api.rows.serializers import (
+            RowSerializer,
+            get_row_serializer_class,
+        )
+        from baserow.contrib.database.rows.registries import row_metadata_registry
+        from baserow.contrib.database.ws.rows.signals import RealtimeRowMessages
+        from baserow.ws.registries import page_registry
+
+        table_page_type = page_registry.get("table")
+
+        # Serialize the updated row
+        serialized_rows = get_row_serializer_class(
+            self.model, RowSerializer, is_response=True
+        )([row], many=True).data
+
+        # Get metadata for the row (includes the success status we just set)
+        metadata = row_metadata_registry.generate_and_merge_metadata_for_rows(
+            self.user, self.table, [row.id]
+        )
+
+        # Send via Celery broadcast (skip owner - frontend has optimistic update)
+        table_page_type.broadcast(
+            RealtimeRowMessages.rows_updated(
+                table_id=self.table.id,
+                serialized_rows_before_update=[],  # Not needed for AI field updates
+                serialized_rows=serialized_rows,
+                metadata=metadata,
+                updated_field_ids=[self.ai_field.id],
+            ),
+            getattr(self.user, "web_socket_id", None),
+            table_id=self.table.id,
         )
 
     def raise_if_error(self):
@@ -562,13 +622,16 @@ class AIValueGenerator:
         is set, we can raise an appropriate exception at the end to inform the caller
         about the error.
 
+        Metadata is set and broadcast in chunks (BATCH_ROWS_SIZE_LIMIT rows at a time)
+        to avoid sending large WS messages with all row IDs upfront.
+
         :param rows: An iterable of rows to generate values for.
         :return:
         :raise GenerativeAIPromptError: Raised at the end of processing, when at least
         one row failed.
         """
 
-        rows_iter = iter(rows.iterator(chunk_size=200))
+        rows_iter = iter(rows.iterator(chunk_size=self.chunk_size))
 
         with ThreadPoolExecutor(self.max_concurrency) as executor:
             while True:
@@ -581,6 +644,7 @@ class AIValueGenerator:
                         self.schedule_next_row(rows_iter, executor)
 
                 except StopIteration:
+                    self._flush_pending_rows_buffer(executor)
                     self.stop_scheduling_rows()
 
                 try:
@@ -597,6 +661,10 @@ class AIValueGenerator:
 
                 if self.is_finished():
                     break
+
+        # Clear "generating" metadata for rows that were set but never scheduled
+        # (due to error or cancellation).
+        self._cleanup_unprocessed_rows()
 
         self.raise_if_error()
 
@@ -660,9 +728,66 @@ class AIValueGenerator:
     def schedule_next_row(self, rows_iter: Iterator, executor: Executor):
         """
         Prepares and adds the next row to the work queue.
+
+        Rows are buffered and metadata is set/broadcast in chunks to avoid
+        sending large WS messages. When the buffer reaches chunk_size,
+        metadata is set for all buffered rows, they are scheduled, and the
+        buffer is cleared.
         """
 
         row = next(rows_iter)
+        self.pending_rows_buffer.append(row)
 
-        executor.submit(self.generate_value_for, row)
-        self.in_process.add(row.id)
+        if len(self.pending_rows_buffer) >= self.chunk_size:
+            self._flush_pending_rows_buffer(executor)
+
+    def _flush_pending_rows_buffer(self, executor: Executor):
+        """
+        Flush the pending rows buffer: set metadata, broadcast, and schedule
+        all buffered rows for processing.
+        """
+
+        if not self.pending_rows_buffer:
+            return
+
+        row_ids = [row.id for row in self.pending_rows_buffer]
+
+        # Set "generating" metadata and broadcast for this chunk
+        if self.has_metadata_column:
+            self.all_row_ids_with_generating_status.extend(row_ids)
+            AIFieldMetadataHandler.set_generating(self.ai_field, row_ids)
+            AIFieldMetadataHandler.broadcast_generation_started(
+                self.ai_field, row_ids, self.user
+            )
+
+        # Schedule all buffered rows for processing
+        for row in self.pending_rows_buffer:
+            self.scheduled_row_ids.add(row.id)
+            executor.submit(self.generate_value_for, row)
+            self.in_process.add(row.id)
+
+        self.pending_rows_buffer = []
+
+    def _cleanup_unprocessed_rows(self):
+        """
+        Clear 'generating' metadata for rows that were set but never scheduled.
+        Called on error, cancellation, or any abnormal exit.
+        """
+
+        if not self.has_metadata_column:
+            return
+
+        unprocessed_row_ids = [
+            row_id
+            for row_id in self.all_row_ids_with_generating_status
+            if row_id not in self.scheduled_row_ids
+        ]
+
+        if unprocessed_row_ids:
+            AIFieldMetadataHandler.clear_metadata(self.ai_field, unprocessed_row_ids)
+            rows_metadata_updated.send(
+                sender=self.signal_sender,
+                table=self.table,
+                row_ids=unprocessed_row_ids,
+                user=self.user,
+            )

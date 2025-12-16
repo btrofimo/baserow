@@ -1,11 +1,7 @@
 import { notifyIf } from '@baserow/modules/core/utils/error'
 
 import FieldService from '@baserow_premium/services/field'
-
-const AI_FIELD_STATUS = {
-  GENERATING: 'g',
-  ERROR: 'e',
-}
+import { AI_FIELD_STATUS } from '@baserow_premium/constants'
 
 export default {
   computed: {
@@ -25,8 +21,8 @@ export default {
       const metadata = this.$parent?.row?._.metadata
 
       if (metadata && metadata.ai_field) {
-        const fieldStatus = metadata.ai_field[this.field.id]
-        return fieldStatus === AI_FIELD_STATUS.GENERATING
+        const fieldMetadata = metadata.ai_field[this.field.id]
+        return fieldMetadata?.status === AI_FIELD_STATUS.GENERATING
       }
 
       return false
@@ -34,8 +30,8 @@ export default {
     generationError() {
       const metadata = this.$parent?.row?._.metadata
       if (metadata && metadata.ai_field) {
-        const fieldStatus = metadata.ai_field[this.field.id]
-        if (fieldStatus === AI_FIELD_STATUS.ERROR) {
+        const fieldMetadata = metadata.ai_field[this.field.id]
+        if (fieldMetadata?.status === AI_FIELD_STATUS.ERROR) {
           return {
             message: this.$t('gridViewFieldAI.generationFailed'),
           }
@@ -46,8 +42,8 @@ export default {
     metadataStatusIndicator() {
       const metadata = this.$parent?.row?._.metadata
       if (metadata && metadata.ai_field) {
-        const fieldStatus = metadata.ai_field[this.field.id]
-        if (fieldStatus === AI_FIELD_STATUS.ERROR) {
+        const fieldMetadata = metadata.ai_field[this.field.id]
+        if (fieldMetadata?.status === AI_FIELD_STATUS.ERROR) {
           return {
             icon: 'iconoir-warning-triangle',
             color: 'var(--color-warning)',
@@ -101,8 +97,8 @@ export default {
       const metadata = parent.row?._.metadata
 
       if (metadata && metadata.ai_field) {
-        const fieldStatus = metadata.ai_field[props.field.id]
-        return fieldStatus === AI_FIELD_STATUS.GENERATING
+        const fieldMetadata = metadata.ai_field[props.field.id]
+        return fieldMetadata?.status === AI_FIELD_STATUS.GENERATING
       }
 
       return false
@@ -138,7 +134,7 @@ export default {
         row,
         metadata: {
           ai_field: {
-            [this.field.id]: AI_FIELD_STATUS.GENERATING,
+            [this.field.id]: { status: AI_FIELD_STATUS.GENERATING },
           },
         },
       })
@@ -161,7 +157,7 @@ export default {
           row,
           metadata: {
             ai_field: {
-              [this.field.id]: previousMetadata || null,
+              [this.field.id]: previousMetadata,
             },
           },
         })

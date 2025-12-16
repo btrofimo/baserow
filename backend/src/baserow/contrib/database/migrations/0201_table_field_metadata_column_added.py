@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("database", "0200_fix_to_timestamptz_formula"),
+        ("database", "0201_increase_pendingsearchvalueupdate_statistics"),
     ]
 
     operations = [
@@ -17,5 +17,6 @@ class Migration(migrations.Migration):
                 help_text="Indicates whether the table has had the field_metadata column added.",
                 null=True,
             ),
+            preserve_default=False,
         ),
     ]

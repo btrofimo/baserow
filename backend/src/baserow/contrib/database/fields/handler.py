@@ -1045,16 +1045,11 @@ class FieldHandler(metaclass=baserow_trace_methods(tracer)):
         if delete_strategy == DeleteFieldStrategyEnum.PERMANENTLY_DELETE:
             # Clean up field metadata only for permanent deletions
             # For TRASH strategy, metadata is preserved to allow restoration
-            from baserow.contrib.database.fields.metadata_handler import (
-                FieldMetadataHandler,
-            )
             from baserow.contrib.database.trash.trash_types import (
                 FieldTrashableItemType,
             )
 
-            model = field.table.get_model(field_ids=[], add_dependencies=False)
-            if FieldMetadataHandler.is_metadata_enabled(model):
-                FieldMetadataHandler.delete_field_metadata(model, field.id)
+            FieldMetadataHandler.on_field_deleted(field)
 
             trash_item_type_registry.get(
                 FieldTrashableItemType.type

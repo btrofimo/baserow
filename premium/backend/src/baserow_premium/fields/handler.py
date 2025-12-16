@@ -67,7 +67,7 @@ class AIFieldHandler:
             raise ModelDoesNotBelongToType(model_name=ai_field.ai_generative_ai_model)
 
         # Set "generating" status for visual feedback
-        has_metadata = AIFieldMetadataHandler.set_generating_for_rows(ai_field, row_ids)
+        has_metadata = AIFieldMetadataHandler.set_generating(ai_field, row_ids)
 
         if has_metadata:
             AIFieldMetadataHandler.broadcast_generation_started(ai_field, row_ids, user)

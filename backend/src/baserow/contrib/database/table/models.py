@@ -1215,15 +1215,26 @@ class Table(
         This column stores metadata for all fields in a row using a JSON structure
         where field IDs are keys. This allows any field type to store status,
         error information, timestamps, or other metadata about their values.
+
+        Also adds a GIN index for efficient JSONB containment and existence queries.
         """
 
-        field_attrs[FIELD_METADATA_COLUMN_NAME] = JSONField(
-            null=False,
-            blank=True,
-            default=dict,
-            db_default={},
-            help_text="Stores metadata for all fields in this row.",
+        from django.contrib.postgres.indexes import GinIndex
+
+        from baserow.contrib.database.fields.metadata_handler import (
+            FieldMetadataHandler,
         )
+
+        field_attrs[FIELD_METADATA_COLUMN_NAME] = FieldMetadataHandler.get_model_field()
+
+        # Add GIN index for efficient JSONB queries
+        indexes.append(
+            GinIndex(
+                fields=[FIELD_METADATA_COLUMN_NAME],
+                name=f"tbl_{self.id}_field_metadata_gin_idx",
+            )
+        )
+
         return field_attrs
 
     @baserow_trace(tracer)

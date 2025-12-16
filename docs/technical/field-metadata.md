@@ -4,7 +4,7 @@
 
 The field metadata system provides a way to store and manage per-field, per-row metadata in Baserow tables. This metadata is stored separately from the actual field values and is used to track additional information about fields that doesn't belong in the primary data model.
 
-**Primary use case**: Tracking AI field generation status (pending, generating, success, error) with timestamps and error details.
+**Primary use case**: Tracking AI field generation status (generating, success, error) with timestamps and error details.
 
 ## Architecture
 
@@ -19,34 +19,44 @@ ALTER TABLE database_table_123
 ADD COLUMN field_metadata JSONB NOT NULL DEFAULT '{}';
 ```
 
-The column is automatically included in the table model when `field_metadata_column_added=True` (default for all tables after migration 0202). Indexes are not automatically created but can be added if query performance requires them.
+The column is automatically included in the table model when `field_metadata_column_added=True` (default for all tables after migration 0202). A GIN index is automatically created on the column for efficient JSONB containment and existence queries.
 
-**Structure**:
+**Internal storage format** (in database):
 ```json
 {
   "456": {  // field_id as string
-    "s": 1,  // status: 0=pending, 1=generating, 2=success, 3=error
-    "gsa": 1762348609.808954,  // generation_started_at (unix timestamp)
-    "gfa": 1762348635.456789   // generation_finished_at (unix timestamp)
+    "start": 1762348609.808954,  // generation started (Unix timestamp)
+    "end": 1762348635.456789,    // generation ended (Unix timestamp)
+    "ok": true                    // true=success, false=error
   },
   "457": {
-    "s": 3,  // error status
-    "gsa": 1762348610.123456,
-    "gfa": 1762348612.789012,
-    "e": {  // error object (only present when status=error)
-      "m": "API timeout",  // message
-      "t": "TimeoutError"  // type
-    }
+    "start": 1762348610.123456,
+    "end": 1762348612.789012,
+    "ok": false,
+    "error": "API timeout"        // error message (only when ok=false)
   }
 }
 ```
 
+**API format** (transformed for frontend):
+```json
+{
+  "456": {"status": "generating"},  // has start, no end
+  "457": {"status": "error"}        // has end, ok=false (within 1 hour)
+}
+```
+
+Status is derived from the internal format:
+- Has `start` but no `end` → `"generating"`
+- Has `end` with `ok=true` → not returned (success = absence of metadata)
+- Has `end` with `ok=false` → `"error"` (expires after 1 hour)
+
 **Key design decisions**:
 - Field IDs are stored as strings (JSON requirement)
-- Short keys used for space efficiency (e.g., `"s"` for status, `"gsa"` for generation_started_at)
+- Human-readable keys in storage for maintainability
 - JSONB allows efficient querying and atomic updates
 - Default empty object `{}` avoids NULL handling
-- Status values stored as integers (enum values) for compactness
+- Status derived from timestamps/flags, not stored directly
 
 #### Column Management
 
@@ -57,7 +67,7 @@ from baserow.contrib.database.fields.metadata_handler import FieldMetadataHandle
 
 # Check if metadata is available
 model = table.get_model()
-if FieldMetadataHandler.is_metadata_enabled(model):
+if FieldMetadataHandler.is_metadata_available(model):
     # Column exists, safe to use metadata operations
 ```
 
@@ -71,13 +81,13 @@ if FieldMetadataHandler.is_metadata_enabled(model):
 
 Generic handler providing CRUD operations for field metadata:
 
-- `get_metadata(row, field_id)` - Read metadata for a specific field
-- `set_metadata(model, row_id, field_id, metadata, merge=True)` - Write metadata atomically using `jsonb_set`
-- `bulk_set_metadata(model, updates)` - Update multiple rows efficiently
-- `delete_field_metadata(model, field_id)` - Remove metadata when field is deleted (uses custom `JSONBRemoveKey` Func)
-- `clear_row_metadata(model, row_id)` - Clear all metadata for a specific row
-- `get_rows_by_metadata_status(model, field_id, status)` - Query rows by metadata value
-- `get_rows_with_field_metadata(model, field_id)` - Get all rows that have metadata for a specific field
+- `get_metadata(model, row_ids, field_ids=None)` - Get metadata for rows (always pass list of row_ids, even for single row)
+- `set_metadata(model, updates, merge=True)` - Set metadata (always pass list of MetadataUpdate, even for single update)
+- `delete_metadata(model, field_id, row_ids=None)` - Delete metadata for a field (all rows or specific rows, uses custom `JSONBRemoveKey` Func)
+- `get_rows_by_metadata(model, field_id, key, value)` - Query rows by metadata key:value pair
+- `get_rows_with_metadata(model, field_id)` - Get all rows that have metadata for a specific field
+- `on_field_updated(field, field_type_changed)` - Handle field updates (clears metadata if type changed)
+- `on_field_deleted(field)` - Handle field deletion (removes all metadata for the field)
 
 **Key features**:
 - Uses PostgreSQL's `jsonb_set` with `COALESCE` for atomic updates, avoiding race conditions
@@ -95,15 +105,15 @@ Field types can implement handlers with domain-specific logic.
 **Location**: `premium/backend/src/baserow_premium/fields/ai_field_metadata.py`
 
 Provides AI-specific methods:
-- `set_generating(model, row_id, field_id)` - Mark as generating with start timestamp
+- `set_generating(ai_field, row_ids)` - Mark rows as generating with start timestamp (accepts int or list). **Clears any previous state** (success/error) when called.
 - `set_success(model, row_id, field_id)` - Mark as successful with completion timestamp (preserves start time)
-- `set_error(model, row_id, field_id, error_message, error_type)` - Mark as failed with error details
-- `set_generating_for_rows(ai_field, row_ids)` - Batch set generating status for multiple rows
+- `set_error(model, row_id, field_id, error_message)` - Mark as failed with error details. **Error messages are truncated to 500 characters** to prevent JSONB bloat.
+- `clear_metadata(ai_field, row_ids)` - Clear metadata for rows (when batch fails midway)
 - `broadcast_generation_started(ai_field, row_ids, user)` - Broadcast metadata updates via WebSocket
 
-**Status enum** (`AIGenerationStatus`): `PENDING=0`, `GENERATING=1`, `SUCCESS=2`, `ERROR=3`
+**Status enum** (`AIGenerationStatus`): `GENERATING`, `SUCCESS`, `ERROR` (derived from metadata presence)
 
-**Metadata keys** (`AIMetadataKeys`): Short storage names (`"s"`, `"gsa"`, `"gfa"`, `"e"`, `"m"`, `"t"`)
+**Metadata keys** (`AIMetadataKeys`): Human-readable storage names (`"start"`, `"end"`, `"ok"`, `"error"`)
 
 See the file for complete implementation including timestamp preservation logic.
 
@@ -150,17 +160,18 @@ GET /api/database/views/grid/123/?include=row_metadata
   "row_metadata": {
     "456": {
       "ai_field": {
-        "789": {
-          "status": "success",
-          "generation_started_at": 1762348609.808954,
-          "generation_finished_at": 1762348635.456789
-        }
+        "789": {"status": "generating"}
       },
       "row_comment_count": 3
     }
   }
 }
 ```
+
+**AI field metadata format**:
+- `{"status": "generating"}` - AI is currently generating a value
+- `{"status": "error"}` - Generation failed (shown for 1 hour after error)
+- No metadata returned for success state (absence = success or never generated)
 
 **Supported endpoints**:
 - Grid view: `GET /api/database/views/grid/{view_id}/`
@@ -189,10 +200,10 @@ The signal handler:
 
 **Broadcasting helper**: `AIFieldMetadataHandler.broadcast_generation_started()`
 
-This method handles both setting metadata and broadcasting in one call:
+This method broadcasts metadata updates to connected clients:
 ```python
 # Set metadata in database
-AIFieldMetadataHandler.set_generating_for_rows(ai_field, row_ids)
+AIFieldMetadataHandler.set_generating(ai_field, row_ids)
 
 # Broadcast to all connected clients
 AIFieldMetadataHandler.broadcast_generation_started(
@@ -228,7 +239,7 @@ rows_metadata_updated.send(
 2. **Task starts, metadata updated to "generating"**
    ```python
    # Set metadata in database
-   AIFieldMetadataHandler.set_generating_for_rows(ai_field, row_ids)
+   AIFieldMetadataHandler.set_generating(ai_field, row_ids)
 
    # Broadcast via WebSocket
    AIFieldMetadataHandler.broadcast_generation_started(
@@ -245,10 +256,7 @@ rows_metadata_updated.send(
      "metadata": {
        "456": {
          "ai_field": {
-           "789": {
-             "status": "generating",
-             "generation_started_at": 1762348609.808954
-           }
+           "789": {"status": "generating"}
          }
        }
      }
@@ -270,24 +278,16 @@ rows_metadata_updated.send(
      "type": "rows_updated",
      "table_id": 100,
      "rows": [{"id": 456, "field_789": "Generated text..."}],
-     "metadata": {
-       "456": {
-         "ai_field": {
-           "789": {
-             "status": "success",
-             "generation_started_at": 1762348609.808954,
-             "generation_finished_at": 1762348635.456789
-           }
-         }
-       }
-     },
+     "metadata": {},
      "updated_field_ids": [789]
    }
    ```
 
+   Note: Success state returns empty metadata for the AI field (absence = success).
+
 5. **On error**
    ```python
-   AIFieldMetadataHandler.set_error(model, row.id, field.id, str(exc), type(exc).__name__)
+   AIFieldMetadataHandler.set_error(model, row.id, field.id, str(exc))
    rows_metadata_updated.send(...)
    ```
 
@@ -300,20 +300,15 @@ rows_metadata_updated.send(
      "metadata": {
        "456": {
          "ai_field": {
-           "789": {
-             "status": "error",
-             "generation_started_at": 1762348609.808954,
-             "generation_finished_at": 1762348612.789012,
-             "error": {
-               "message": "API timeout",
-               "type": "TimeoutError"
-             }
-           }
+           "789": {"status": "error"}
          }
        }
      }
    }
    ```
+
+   Note: Error details (message, type) are stored internally but not exposed in the API.
+   Errors expire after 1 hour and will no longer be returned.
 
 #### Message Type Comparison
 
@@ -334,10 +329,10 @@ rows_metadata_updated.send(
 
 The AI field generation task (`generate_ai_values_for_rows`) demonstrates the complete metadata lifecycle:
 
-1. **Check metadata availability**: Verify table has metadata column using `FieldMetadataHandler.is_metadata_enabled()`
+1. **Check metadata availability**: Verify table has metadata column using `FieldMetadataHandler.is_metadata_available()`
 
 2. **Mark as generating**:
-   - Call `AIFieldMetadataHandler.set_generating()`
+   - Call `AIFieldMetadataHandler.set_generating(ai_field, row_ids)`
    - Send `rows_metadata_updated` signal for real-time notification
 
 3. **Generate AI value**: Call generative AI model
@@ -389,36 +384,38 @@ Each use case would follow the same pattern as `AIFieldMetadataHandler`:
 
 ### 1. Graceful Degradation
 
-Always check if metadata is enabled before using:
+Always check if metadata is available before using:
 
 ```python
-if FieldMetadataHandler.is_metadata_enabled(model):
+if FieldMetadataHandler.is_metadata_available(model):
     # Safe to use metadata
-    AIFieldMetadataHandler.set_generating(model, row.id, field.id)
+    AIFieldMetadataHandler.set_generating(ai_field, row.id)
 else:
     # Column doesn't exist yet, skip metadata
     pass
 ```
 
-### 2. Short Keys for Storage
+### 2. Readable Keys with Constants
 
-Use verbose names in code, short keys in storage:
+Use constants for keys to enable refactoring while keeping storage readable:
 
 ```python
 class MyMetadataKeys:
-    STATUS = "s"           # Not "status"
-    TIMESTAMP = "ts"       # Not "timestamp"
-    ERROR_MESSAGE = "em"   # Not "error_message"
+    START = "start"        # When operation started
+    END = "end"            # When operation completed
+    OK = "ok"              # True=success, False=error
+    ERROR = "error"        # Error message (only when ok=False)
 
-# In code (readable)
+# In code (using constants)
 metadata = {
-    MyMetadataKeys.STATUS: "processing",
-    MyMetadataKeys.TIMESTAMP: timezone.now().timestamp(),
+    MyMetadataKeys.START: timezone.now().timestamp(),
 }
 
-# In database (compact)
-{"s": "processing", "ts": 1762348609.808954}
+# In database (human-readable)
+{"start": 1762348609.808954}
 ```
+
+This approach prioritizes debuggability over storage space (which is rarely a concern for metadata).
 
 ### 3. Atomic Transactions for Consistency
 
@@ -441,7 +438,8 @@ When updating status, preserve timestamps:
 
 ```python
 # Read existing metadata
-existing = FieldMetadataHandler.get_metadata(row, field_id) or {}
+result = FieldMetadataHandler.get_metadata(model, [row_id], [field_id])
+existing = result.get(row_id, {}).get(field_id) or {}
 
 # Merge with new data
 metadata = {
@@ -450,27 +448,30 @@ metadata = {
     MyMetadataKeys.FINISHED_AT: timezone.now().timestamp(),
 }
 
-FieldMetadataHandler.set_metadata(model, row_id, field_id, metadata, merge=False)
+FieldMetadataHandler.set_metadata(
+    model,
+    [MetadataUpdate(row_id=row_id, field_id=field_id, metadata=metadata)],
+    merge=False
+)
 ```
 
 ### 5. Cleanup on Field Operations
 
-Metadata is automatically cleaned up when fields are deleted or modified:
+Metadata is automatically cleaned up when fields are deleted or modified via lifecycle hooks:
 
 **On field deletion** (`FieldHandler.delete_field()`):
 ```python
-# In handler.py
-FieldMetadataHandler.delete_field_metadata(model, field.id)
+# Called automatically by FieldHandler
+FieldMetadataHandler.on_field_deleted(field)
 ```
 
 **On field type change** (`FieldHandler.update_field()`):
 ```python
-# When field type changes, clear stale metadata
-if baserow_field_type_changed:
-    FieldMetadataHandler.delete_field_metadata(model, field.id)
+# Called automatically by FieldHandler
+FieldMetadataHandler.on_field_updated(field, field_type_changed=True)
 ```
 
-This ensures no orphaned metadata remains when fields are removed or fundamentally changed.
+These lifecycle methods encapsulate the logic for checking metadata availability and clearing it when needed. This ensures no orphaned metadata remains when fields are removed or fundamentally changed.
 
 ## Performance Considerations
 

@@ -102,6 +102,7 @@ class AsyncGenerateAIFieldValuesView(APIView):
             ),
         },
     )
+    @transaction.atomic
     @map_exceptions(
         {
             FieldDoesNotExist: ERROR_FIELD_DOES_NOT_EXIST,

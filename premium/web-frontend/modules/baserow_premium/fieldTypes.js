@@ -139,30 +139,43 @@ export class AIFieldType extends FieldType {
     return this.getBaserowFieldType(field).canRepresentFiles(field)
   }
 
-  onRowRealtimeUpdate(context, field, rowBefore, rowAfter) {
-    // Safety check: ensure rows have metadata populated
-    if (!rowBefore._ || !rowAfter._) {
+  onRowRealtimeUpdate(context, field, rowBefore, rowAfter, metadata) {
+    // This method is called when an AI field value is updated via WebSocket.
+    // If we're here, it means the AI field value was just updated, which means
+    // any ongoing generation has completed (either successfully or with an error).
+    //
+    // This method is called from two places with different context shapes:
+    // 1. realtime.js: context = { app, store } - called first, before view updates
+    // 2. grid.js updatedExistingRow: context = { store, commit, getters, dispatch }
+    //
+    // We only handle the call from grid.js where we have access to commit/dispatch
+    // because that's where we need to update the grid's internal state.
+
+    // Detect if this is the grid.js context (has commit/dispatch directly)
+    if (!context.commit || !context.dispatch) {
+      // This is the realtime.js context - skip, let grid.js handle it
       return
     }
 
-    // Check if AI field generation status changed by comparing old and new metadata
-    const oldMetadata = rowBefore._.metadata?.ai_field?.[field.id]
-    const newMetadata = rowAfter._.metadata?.ai_field?.[field.id]
+    // Check if the new metadata has a status for this field
+    const newStatus = metadata?.ai_field?.[field.id]?.status
 
-    const oldStatus = oldMetadata?.status
-    const newStatus = newMetadata?.status
-
-    // Clear spinner if:
-    // 1. Status changed from 'generating' to 'success' or 'error'
-    // 2. Status was 'generating' and now there's no metadata (indicates success)
-    if (
-      oldStatus === 'generating' &&
-      (newStatus === 'success' || newStatus === 'error' || !newStatus)
-    ) {
-      context.commit('SET_PENDING_FIELD_OPERATIONS', {
-        fieldId: field.id,
-        rowIds: [rowAfter.id],
-        value: false,
+    // If there's no new status (success case), clear the generating metadata.
+    // This is needed because:
+    // 1. Success doesn't send a status (API returns null for success)
+    // 2. The row might not be in the metadata dict at all
+    // 3. UPDATE_ROW_IN_BUFFER won't update metadata if metadata[row.id] is undefined
+    // So we need to explicitly clear any stale "generating" status.
+    if (!newStatus) {
+      // Clear the field's metadata by setting it to null
+      // The UPDATE_ROW_METADATA mutation handles null values by deleting the key
+      context.commit('UPDATE_ROW_METADATA', {
+        row: rowAfter,
+        metadata: {
+          ai_field: {
+            [field.id]: null,
+          },
+        },
       })
     }
   }

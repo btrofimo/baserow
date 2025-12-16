@@ -183,7 +183,6 @@ import rowModal from '@baserow/modules/database/store/rowModal'
 import publicStore from '@baserow/modules/database/store/view/public'
 import rowModalNavigationStore from '@baserow/modules/database/store/rowModalNavigation'
 import rowHistoryStore from '@baserow/modules/database/store/rowHistory'
-import rowMetadataStore from '@baserow/modules/database/store/rowMetadata'
 import fieldRulesStore from '@baserow/modules/database/store/fieldRules'
 
 import { registerRealtimeEvents } from '@baserow/modules/database/realtime'

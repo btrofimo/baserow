@@ -1,10 +1,13 @@
-from enum import IntEnum
-from typing import TYPE_CHECKING
+from enum import Enum
+from typing import TYPE_CHECKING, Optional, Union
 
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 
-from baserow.contrib.database.fields.metadata_handler import FieldMetadataHandler
+from baserow.contrib.database.fields.metadata_handler import (
+    FieldMetadataHandler,
+    MetadataUpdate,
+)
 
 if TYPE_CHECKING:
     from baserow_premium.fields.models import AIField
@@ -12,79 +15,115 @@ if TYPE_CHECKING:
     from baserow.contrib.database.table.models import GeneratedTableModel
 
 
-class AIGenerationStatus(IntEnum):
+class AIGenerationStatus(Enum):
     """
     Status values for AI field generation.
 
-    Values are stored as integers in the metadata to save space.
+    Status is derived from metadata presence/values, not stored directly.
     """
 
-    PENDING = 0
-    GENERATING = 1
-    SUCCESS = 2
-    ERROR = 3
+    GENERATING = "generating"
+    SUCCESS = "success"
+    ERROR = "error"
+
+    @classmethod
+    def from_metadata(cls, metadata: Optional[dict]) -> Optional["AIGenerationStatus"]:
+        """
+        Derive status from metadata.
+
+        Returns None if no metadata (row was never processed - this is normal state).
+
+        :param metadata: The metadata dictionary for a field
+        :return: AIGenerationStatus or None if no metadata
+        """
+
+        if not metadata:
+            return None
+
+        # Has start but no end = currently generating
+        if AIMetadataKeys.START in metadata and AIMetadataKeys.END not in metadata:
+            return cls.GENERATING
+
+        # Has end with ok=True = success
+        if metadata.get(AIMetadataKeys.OK) is True:
+            return cls.SUCCESS
+
+        # Has end with ok=False = error
+        if metadata.get(AIMetadataKeys.OK) is False:
+            return cls.ERROR
+
+        return None
 
 
 class AIMetadataKeys:
     """
-    Defines metadata keys with short storage names for space efficiency.
+    Defines metadata keys for AI field generation tracking.
 
-    Usage in code:
-        metadata = {
-            AIMetadataKeys.STATUS: AIGenerationStatus.SUCCESS,
-            AIMetadataKeys.GENERATION_STARTED_AT: timestamp,
-        }
-
-    Storage format (short keys):
-        {"s": 2, "gsa": 1698765432.123}
+    Storage format (human-readable):
+        {"start": 1702656000, "end": 1702656060, "ok": True}
+        {"start": 1702656000, "end": 1702656060, "ok": False, "error": "Error message"}
     """
 
-    STATUS = "s"
-
-    GENERATION_STARTED_AT = "gsa"
-    GENERATION_FINISHED_AT = "gfa"
-
-    ERROR = "e"
-    ERROR_MESSAGE = "m"
-    ERROR_TYPE = "t"
+    START = "start"  # Generation started timestamp (Unix timestamp)
+    END = "end"  # Generation ended timestamp (Unix timestamp)
+    OK = "ok"  # True=success, False=error
+    ERROR = "error"  # Error message (only present when ok=False)
 
 
 class AIFieldMetadataHandler:
     """
     Metadata handler for AI fields.
 
-    Tracks AI generation lifecycle:
-    - generation_started_at: When generation started
-    - generation_finished_at: When generation completed
-    - status: Current status (AIGenerationStatus enum value)
-    - error: Error details (only present if status=ERROR)
+    Tracks AI generation lifecycle using the following metadata format:
+    - start: When generation started (Unix timestamp)
+    - end: When generation completed (Unix timestamp)
+    - ok: True if successful, False if error
+    - error: Error message (only present if ok=False)
 
-    This handler provides utility methods for managing AI field metadata
-    during the generation process.
+    Status is derived from metadata:
+    - No metadata: Row was never processed (normal state)
+    - Has start, no end: GENERATING
+    - Has end, ok=True: SUCCESS
+    - Has end, ok=False: ERROR
     """
+
+    # Maximum length for error messages to prevent JSONB bloat
+    MAX_ERROR_MESSAGE_LENGTH = 500
 
     @classmethod
     def set_generating(
         cls,
-        model: type["GeneratedTableModel"],
-        row_id: int,
-        field_id: int,
-    ):
+        ai_field: "AIField",
+        row_ids: Union[int, list[int]],
+    ) -> bool:
         """
-        Mark an AI field as currently generating.
+        Set generating status for one or more rows.
 
-        This should be called when AI generation starts.
-
-        :param model: The generated table model
-        :param row_id: The row ID
-        :param field_id: The AI field ID
+        :param ai_field: The AI field
+        :param row_ids: Single row ID or list of row IDs
+        :return: True if metadata was set, False if metadata is not available
         """
 
-        metadata = {
-            AIMetadataKeys.STATUS: AIGenerationStatus.GENERATING,
-            AIMetadataKeys.GENERATION_STARTED_AT: timezone.now().timestamp(),
-        }
-        FieldMetadataHandler.set_metadata(model, row_id, field_id, metadata)
+        if isinstance(row_ids, int):
+            row_ids = [row_ids]
+
+        model = ai_field.table.get_model()
+
+        if not FieldMetadataHandler.is_metadata_available(model):
+            return False
+
+        timestamp = timezone.now().timestamp()
+        updates = [
+            MetadataUpdate(
+                row_id=row_id,
+                field_id=ai_field.id,
+                metadata={AIMetadataKeys.START: timestamp},
+            )
+            for row_id in row_ids
+        ]
+        FieldMetadataHandler.set_metadata(model, updates, merge=False)
+
+        return True
 
     @classmethod
     def set_success(
@@ -101,16 +140,18 @@ class AIFieldMetadataHandler:
         :param field_id: The AI field ID
         """
 
-        row = model.objects.get(id=row_id)
-        existing = FieldMetadataHandler.get_metadata(row, field_id) or {}
+        result = FieldMetadataHandler.get_metadata(model, [row_id], [field_id])
+        existing = result.get(row_id, {}).get(field_id, {})
 
         metadata = {
-            **existing,  # Preserve existing fields (like generation_started_at)
-            AIMetadataKeys.STATUS: AIGenerationStatus.SUCCESS,
-            AIMetadataKeys.GENERATION_FINISHED_AT: timezone.now().timestamp(),
+            AIMetadataKeys.START: existing.get(AIMetadataKeys.START),
+            AIMetadataKeys.END: timezone.now().timestamp(),
+            AIMetadataKeys.OK: True,
         }
         FieldMetadataHandler.set_metadata(
-            model, row_id, field_id, metadata, merge=False
+            model,
+            [MetadataUpdate(row_id=row_id, field_id=field_id, metadata=metadata)],
+            merge=False,
         )
 
     @classmethod
@@ -120,7 +161,6 @@ class AIFieldMetadataHandler:
         row_id: int,
         field_id: int,
         error_message: str,
-        error_type: str,
     ):
         """
         Mark an AI field as failed with an error.
@@ -129,67 +169,34 @@ class AIFieldMetadataHandler:
         :param row_id: The row ID
         :param field_id: The AI field ID
         :param error_message: Error message from the exception
-        :param error_type: Type/class name of the error
         """
 
-        row = model.objects.get(id=row_id)
-        existing = FieldMetadataHandler.get_metadata(row, field_id) or {}
+        result = FieldMetadataHandler.get_metadata(model, [row_id], [field_id])
+        existing = result.get(row_id, {}).get(field_id, {})
+
+        # Truncate error message to prevent JSONB bloat
+        truncated_error = error_message
+        if len(error_message) > cls.MAX_ERROR_MESSAGE_LENGTH:
+            truncated_error = error_message[: cls.MAX_ERROR_MESSAGE_LENGTH - 3] + "..."
 
         metadata = {
-            **existing,
-            AIMetadataKeys.STATUS: AIGenerationStatus.ERROR,
-            AIMetadataKeys.GENERATION_FINISHED_AT: timezone.now().timestamp(),
-            AIMetadataKeys.ERROR: {
-                AIMetadataKeys.ERROR_MESSAGE: error_message,
-                AIMetadataKeys.ERROR_TYPE: error_type,
-            },
+            AIMetadataKeys.START: existing.get(AIMetadataKeys.START),
+            AIMetadataKeys.END: timezone.now().timestamp(),
+            AIMetadataKeys.OK: False,
+            AIMetadataKeys.ERROR: truncated_error,
         }
         FieldMetadataHandler.set_metadata(
-            model, row_id, field_id, metadata, merge=False
+            model,
+            [MetadataUpdate(row_id=row_id, field_id=field_id, metadata=metadata)],
+            merge=False,
         )
 
     @classmethod
-    def set_generating_for_rows(
+    def clear_metadata(
         cls,
         ai_field: "AIField",
         row_ids: list[int],
-    ):
-        """
-        Set generating status for multiple rows in the database using a single
-        UPDATE statement.
-
-        :param ai_field: The AI field
-        :param row_ids: List of row IDs being generated
-        :return: True if metadata was set, False if metadata is disabled
-        """
-
-        model = ai_field.table.get_model()
-
-        if not FieldMetadataHandler.is_metadata_enabled(model):
-            return False
-
-        timestamp = timezone.now().timestamp()
-        updates = [
-            {
-                "row_id": row_id,
-                "field_id": ai_field.id,
-                "metadata": {
-                    AIMetadataKeys.STATUS: AIGenerationStatus.GENERATING,
-                    AIMetadataKeys.GENERATION_STARTED_AT: timestamp,
-                },
-            }
-            for row_id in row_ids
-        ]
-        FieldMetadataHandler.bulk_set_metadata(model, updates)
-
-        return True
-
-    @classmethod
-    def clear_metadata_for_rows(
-        cls,
-        ai_field: "AIField",
-        row_ids: list[int],
-    ):
+    ) -> bool:
         """
         Clear AI field metadata for specific rows.
 
@@ -198,20 +205,18 @@ class AIFieldMetadataHandler:
 
         :param ai_field: The AI field
         :param row_ids: List of row IDs to clear metadata for
-        :return: True if metadata was cleared, False if metadata is disabled
+        :return: True if metadata was cleared, False if metadata is not available
         """
 
         model = ai_field.table.get_model()
 
-        if not FieldMetadataHandler.is_metadata_enabled(model):
+        if not FieldMetadataHandler.is_metadata_available(model):
             return False
 
         if not row_ids:
             return True
 
-        FieldMetadataHandler.bulk_delete_field_metadata_for_rows(
-            model, ai_field.id, row_ids
-        )
+        FieldMetadataHandler.delete_metadata(model, ai_field.id, row_ids=row_ids)
 
         return True
 
@@ -227,7 +232,7 @@ class AIFieldMetadataHandler:
 
         This should be called AFTER setting metadata in the database and BEFORE
         dispatching the generation task. This ensures other users/windows see
-        the generating status immediately.
+        the generating status.
 
         :param ai_field: The AI field
         :param row_ids: List of row IDs being generated
@@ -239,14 +244,17 @@ class AIFieldMetadataHandler:
 
         table = ai_field.table
         table_page_type = page_registry.get("table")
+
+        metadata = row_metadata_registry.generate_and_merge_metadata_for_rows(
+            user, table, row_ids
+        )
+
         table_page_type.broadcast(
             {
                 "type": "rows_metadata_updated",
                 "table_id": table.id,
                 "row_ids": row_ids,
-                "metadata": row_metadata_registry.generate_and_merge_metadata_for_rows(
-                    user, table, row_ids
-                ),
+                "metadata": metadata,
             },
             getattr(user, "web_socket_id", None),
             table_id=table.id,

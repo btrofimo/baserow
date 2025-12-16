@@ -28,3 +28,12 @@ export const FIELD_CONSTRAINT_ERROR_CODES = [
   'ERROR_INVALID_FIELD_CONSTRAINT',
   'ERROR_FIELD_CONSTRAINT_DOES_NOT_SUPPORT_DEFAULT_VALUE',
 ]
+
+/**
+ * AI field generation status values.
+ * These values match the API response format for field metadata.
+ */
+export const AI_FIELD_STATUS = {
+  GENERATING: 'generating',
+  ERROR: 'error',
+}
