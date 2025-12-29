@@ -3,11 +3,11 @@ from unittest.mock import patch
 from django.test.utils import override_settings
 
 import pytest
-from baserow_premium.fields.ai_field_metadata import AIMetadataKeys
 
 from baserow.contrib.database.fields.metadata_handler import FieldMetadataHandler
 from baserow.contrib.database.rows.handler import RowHandler
 from baserow.core.jobs.handler import JobHandler
+from baserow_premium.fields.ai_field_metadata import AIMetadataKeys
 from baserow_premium.fields.models import GenerateAIValuesJob
 
 

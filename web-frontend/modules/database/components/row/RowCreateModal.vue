@@ -67,7 +67,6 @@
 </template>
 
 <script>
-// TODO MIG import Vue from 'vue'
 import modal from '@baserow/modules/core/mixins/modal'
 import error from '@baserow/modules/core/mixins/error'
 import RowEditModalFieldsList from './RowEditModalFieldsList.vue'

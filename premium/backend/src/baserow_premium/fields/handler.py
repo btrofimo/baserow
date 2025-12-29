@@ -3,10 +3,6 @@ from typing import TYPE_CHECKING, Optional
 
 from django.contrib.auth.models import AbstractUser
 
-from baserow_premium.fields.ai_field_metadata import AIFieldMetadataHandler
-from baserow_premium.fields.exceptions import AiFieldOutputParserException
-from baserow_premium.prompts import get_generate_formula_prompt
-
 from baserow.contrib.database.fields.registries import field_type_registry
 from baserow.contrib.database.rows.exceptions import RowDoesNotExist
 from baserow.contrib.database.rows.handler import RowHandler
@@ -15,6 +11,7 @@ from baserow.core.db import specific_iterator
 from baserow.core.generative_ai.exceptions import ModelDoesNotBelongToType
 from baserow.core.generative_ai.registries import generative_ai_model_type_registry
 from baserow.core.jobs.handler import JobHandler
+from baserow_premium.fields.ai_field_metadata import AIFieldMetadataHandler
 from baserow_premium.fields.exceptions import AiFieldOutputParserException
 from baserow_premium.prompts import get_generate_formula_prompt
 
@@ -66,13 +63,8 @@ class AIFieldHandler:
         if ai_field.ai_generative_ai_model not in ai_models:
             raise ModelDoesNotBelongToType(model_name=ai_field.ai_generative_ai_model)
 
-        # Set "generating" status for visual feedback
-        has_metadata = AIFieldMetadataHandler.set_generating(ai_field, row_ids)
+        AIFieldMetadataHandler.set_generating_and_broadcast(ai_field, row_ids, user)
 
-        if has_metadata:
-            AIFieldMetadataHandler.broadcast_generation_started(ai_field, row_ids, user)
-
-        # Create and start the job asynchronously
         JobHandler().create_and_start_job(
             user,
             "generate_ai_values",

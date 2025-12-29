@@ -4,26 +4,15 @@ import FieldService from '@baserow_premium/services/field'
 import { AI_FIELD_STATUS } from '@baserow_premium/constants'
 
 export default {
-  data() {
-    return {
-      localGenerating: false,
-    }
-  },
   computed: {
     workspace() {
       return this.$store.getters['workspace/get'](this.workspaceId)
     },
     generating() {
-      // Check row metadata for generating status from websocket updates
-      const metadata = this.row?._.metadata
-      if (metadata && metadata.ai_field) {
-        const fieldMetadata = metadata.ai_field[this.field.id]
-        if (fieldMetadata?.status === AI_FIELD_STATUS.GENERATING) {
-          return true
-        }
-      }
-      // Combine with local state for immediate feedback when user clicks generate
-      return this.localGenerating
+      const metadata = this.row?._?.metadata
+      return (
+        metadata?.ai_field?.[this.field.id]?.status === AI_FIELD_STATUS.GENERATING
+      )
     },
     modelAvailable() {
       const aIModels =
@@ -48,22 +37,42 @@ export default {
         .getDeactivatedClickModal(this.workspaceId)
     },
   },
-  watch: {
-    value() {
-      // Clear local generating state when value updates
-      this.localGenerating = false
-    },
-  },
   methods: {
     async generate() {
-      this.localGenerating = true
+      if (this.isDeactivated) {
+        this.$refs.clickModal.show()
+        return
+      }
+
+      const rowId = this.row.id
+      const previousMetadata =
+        this.row?._?.metadata?.ai_field?.[this.field.id] || null
+
+      // Optimistic update to store
+      this.$store.commit('rowModal/UPDATE_ROW_METADATA', {
+        rowId,
+        metadata: {
+          ai_field: {
+            [this.field.id]: { status: AI_FIELD_STATUS.GENERATING },
+          },
+        },
+      })
+
       try {
         await FieldService(this.$client).generateAIFieldValues(this.field.id, [
-          this.row.id,
+          rowId,
         ])
       } catch (error) {
         notifyIf(error, 'field')
-        this.localGenerating = false
+        // Rollback on error
+        this.$store.commit('rowModal/UPDATE_ROW_METADATA', {
+          rowId,
+          metadata: {
+            ai_field: {
+              [this.field.id]: previousMetadata,
+            },
+          },
+        })
       }
     },
   },

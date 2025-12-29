@@ -1,11 +1,11 @@
 import pytest
+
+from baserow.contrib.database.fields.metadata_handler import FieldMetadataHandler
 from baserow_premium.fields.ai_field_metadata import (
     AIFieldMetadataHandler,
     AIGenerationStatus,
     AIMetadataKeys,
 )
-
-from baserow.contrib.database.fields.metadata_handler import FieldMetadataHandler
 
 
 @pytest.mark.django_db
@@ -55,7 +55,6 @@ def test_ai_field_metadata_handler_set_success(premium_data_fixture):
     )
 
     assert metadata is not None
-    assert AIMetadataKeys.START in metadata
     assert AIMetadataKeys.END in metadata
     assert metadata[AIMetadataKeys.OK] is True
     assert AIMetadataKeys.ERROR not in metadata
@@ -84,7 +83,6 @@ def test_ai_field_metadata_handler_set_error(premium_data_fixture):
     )
 
     assert metadata is not None
-    assert AIMetadataKeys.START in metadata
     assert AIMetadataKeys.END in metadata
     assert metadata[AIMetadataKeys.OK] is False
     assert metadata[AIMetadataKeys.ERROR] == "Test error message"
@@ -210,10 +208,7 @@ def test_ai_field_metadata_handler_set_generating_bulk(premium_data_fixture):
     row2 = model.objects.create()
     row3 = model.objects.create()
 
-    result = AIFieldMetadataHandler.set_generating(
-        ai_field, [row1.id, row2.id, row3.id]
-    )
-    assert result is True
+    AIFieldMetadataHandler.set_generating(ai_field, [row1.id, row2.id, row3.id])
 
     row1.refresh_from_db()
     row2.refresh_from_db()

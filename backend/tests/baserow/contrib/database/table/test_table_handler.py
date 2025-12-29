@@ -1199,6 +1199,6 @@ def test_duplicate_table_does_not_copy_metadata(data_fixture):
             .get(dup_row.id, {})
             .get(duplicated_text_field.id)
         )
-        assert (
-            metadata is None
-        ), f"Duplicated row {dup_row.id} should not have metadata, but has: {metadata}"
+        assert metadata is None, (
+            f"Duplicated row {dup_row.id} should not have metadata, but has: {metadata}"
+        )

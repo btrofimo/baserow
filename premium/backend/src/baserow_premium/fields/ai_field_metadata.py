@@ -10,9 +10,8 @@ from baserow.contrib.database.fields.metadata_handler import (
 )
 
 if TYPE_CHECKING:
-    from baserow_premium.fields.models import AIField
-
     from baserow.contrib.database.table.models import GeneratedTableModel
+    from baserow_premium.fields.models import AIField
 
 
 class AIGenerationStatus(Enum):
@@ -59,15 +58,16 @@ class AIMetadataKeys:
     """
     Defines metadata keys for AI field generation tracking.
 
-    Storage format (human-readable):
-        {"start": 1702656000, "end": 1702656060, "ok": True}
-        {"start": 1702656000, "end": 1702656060, "ok": False, "error": "Error message"}
+    Storage format by state:
+        GENERATING: {"start": 1702656000}
+        SUCCESS:    {"end": 1702656060, "ok": True}
+        ERROR:      {"end": 1702656060, "ok": False, "error": "Error message"}
     """
 
-    START = "start"  # Generation started timestamp (Unix timestamp)
-    END = "end"  # Generation ended timestamp (Unix timestamp)
-    OK = "ok"  # True=success, False=error
-    ERROR = "error"  # Error message (only present when ok=False)
+    START = "start"
+    END = "end"
+    OK = "ok"
+    ERROR = "error"
 
 
 class AIFieldMetadataHandler:
@@ -87,7 +87,6 @@ class AIFieldMetadataHandler:
     - Has end, ok=False: ERROR
     """
 
-    # Maximum length for error messages to prevent JSONB bloat
     MAX_ERROR_MESSAGE_LENGTH = 500
 
     @classmethod
@@ -95,13 +94,12 @@ class AIFieldMetadataHandler:
         cls,
         ai_field: "AIField",
         row_ids: Union[int, list[int]],
-    ) -> bool:
+    ):
         """
         Set generating status for one or more rows.
 
         :param ai_field: The AI field
         :param row_ids: Single row ID or list of row IDs
-        :return: True if metadata was set, False if metadata is not available
         """
 
         if isinstance(row_ids, int):
@@ -110,7 +108,7 @@ class AIFieldMetadataHandler:
         model = ai_field.table.get_model()
 
         if not FieldMetadataHandler.is_metadata_available(model):
-            return False
+            return
 
         timestamp = timezone.now().timestamp()
         updates = [
@@ -123,7 +121,29 @@ class AIFieldMetadataHandler:
         ]
         FieldMetadataHandler.set_metadata(model, updates, merge=False)
 
-        return True
+    @classmethod
+    def set_generating_and_broadcast(
+        cls,
+        ai_field: "AIField",
+        row_ids: Union[int, list[int]],
+        user: AbstractUser,
+    ):
+        """
+        Set generating status for rows and broadcast to connected clients.
+
+        This combined method ensures the generating status is set in the database
+        and all connected clients are notified.
+
+        :param ai_field: The AI field
+        :param row_ids: Single row ID or list of row IDs
+        :param user: The user who triggered the generation
+        """
+
+        if isinstance(row_ids, int):
+            row_ids = [row_ids]
+
+        cls.set_generating(ai_field, row_ids)
+        cls.broadcast_generation_started(ai_field, row_ids, user)
 
     @classmethod
     def set_success(
@@ -140,18 +160,14 @@ class AIFieldMetadataHandler:
         :param field_id: The AI field ID
         """
 
-        result = FieldMetadataHandler.get_metadata(model, [row_id], [field_id])
-        existing = result.get(row_id, {}).get(field_id, {})
-
         metadata = {
-            AIMetadataKeys.START: existing.get(AIMetadataKeys.START),
             AIMetadataKeys.END: timezone.now().timestamp(),
             AIMetadataKeys.OK: True,
         }
         FieldMetadataHandler.set_metadata(
             model,
             [MetadataUpdate(row_id=row_id, field_id=field_id, metadata=metadata)],
-            merge=False,
+            merge=True,
         )
 
     @classmethod
@@ -171,16 +187,11 @@ class AIFieldMetadataHandler:
         :param error_message: Error message from the exception
         """
 
-        result = FieldMetadataHandler.get_metadata(model, [row_id], [field_id])
-        existing = result.get(row_id, {}).get(field_id, {})
-
-        # Truncate error message to prevent JSONB bloat
         truncated_error = error_message
         if len(error_message) > cls.MAX_ERROR_MESSAGE_LENGTH:
             truncated_error = error_message[: cls.MAX_ERROR_MESSAGE_LENGTH - 3] + "..."
 
         metadata = {
-            AIMetadataKeys.START: existing.get(AIMetadataKeys.START),
             AIMetadataKeys.END: timezone.now().timestamp(),
             AIMetadataKeys.OK: False,
             AIMetadataKeys.ERROR: truncated_error,
@@ -188,7 +199,7 @@ class AIFieldMetadataHandler:
         FieldMetadataHandler.set_metadata(
             model,
             [MetadataUpdate(row_id=row_id, field_id=field_id, metadata=metadata)],
-            merge=False,
+            merge=True,
         )
 
     @classmethod

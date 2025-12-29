@@ -8,7 +8,6 @@ from unittest.mock import patch
 from django.test.utils import override_settings
 
 import pytest
-from baserow_premium.fields.models import GenerateAIValuesJob
 
 from baserow.contrib.database.fields.exceptions import FieldDoesNotExist
 from baserow.contrib.database.fields.handler import FieldHandler
@@ -850,47 +849,7 @@ def test_generate_ai_field_value_includes_metadata_in_rows_updated_signal(
     )
     assert metadata is not None
     assert metadata["ok"] is True  # AIGenerationStatus.SUCCESS
-    assert "start" in metadata  # generation_started_at
     assert "end" in metadata  # generation_finished_at
-
-
-@pytest.mark.django_db(transaction=True)
-@pytest.mark.field_ai
-def test_generate_ai_field_value_preserves_generation_started_timestamp(
-    premium_data_fixture,
-):
-    premium_data_fixture.register_fake_generate_ai_type()
-    user = premium_data_fixture.create_user()
-
-    database = premium_data_fixture.create_database_application(user=user)
-    table = premium_data_fixture.create_database_table(database=database)
-
-    # Ensure metadata column exists
-    model = table.get_model()
-
-    field = premium_data_fixture.create_ai_field(
-        table=table, name="ai", ai_prompt="'Hello'"
-    )
-
-    rows = RowHandler().create_rows(user, table, rows_values=[{}]).created_rows
-    row = rows[0]
-
-    JobHandler().create_and_start_job(
-        user, "generate_ai_values", sync=True, field_id=field.id, row_ids=[row.id]
-    )
-
-    # Verify metadata has both started and finished timestamps
-    row.refresh_from_db()
-    metadata = (
-        FieldMetadataHandler.get_metadata(model, [row.id], [field.id])
-        .get(row.id, {})
-        .get(field.id)
-    )
-    assert metadata is not None
-    assert "start" in metadata  # generation_started_at
-    assert "end" in metadata  # generation_finished_at
-    # Started timestamp should be before or equal to finished timestamp
-    assert metadata["start"] <= metadata["end"]
 
 
 @pytest.mark.django_db(transaction=True)

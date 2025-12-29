@@ -3,16 +3,16 @@ from unittest.mock import patch
 from django.utils import timezone
 
 import pytest
-from baserow_premium.fields.ai_field_metadata import (
-    AIFieldMetadataHandler,
-    AIMetadataKeys,
-)
 
 from baserow.contrib.database.fields.metadata_handler import (
     FieldMetadataHandler,
     MetadataUpdate,
 )
 from baserow.contrib.database.rows.registries import row_metadata_registry
+from baserow_premium.fields.ai_field_metadata import (
+    AIFieldMetadataHandler,
+    AIMetadataKeys,
+)
 
 
 @pytest.mark.django_db

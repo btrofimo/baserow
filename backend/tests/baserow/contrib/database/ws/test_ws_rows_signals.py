@@ -496,9 +496,12 @@ def test_rows_metadata_updated_includes_all_metadata_types(
     field = data_fixture.create_text_field(table=table)
     row = table.get_model().objects.create(**{f"field_{field.id}": "Test"})
 
-    with register_instance_temporarily(
-        row_metadata_registry, test_populates_with_row_id_metadata()
-    ), register_instance_temporarily(row_metadata_registry, RowStatusMetadata()):
+    with (
+        register_instance_temporarily(
+            row_metadata_registry, test_populates_with_row_id_metadata()
+        ),
+        register_instance_temporarily(row_metadata_registry, RowStatusMetadata()),
+    ):
         rows_metadata_updated.send(
             sender=None,
             table=table,

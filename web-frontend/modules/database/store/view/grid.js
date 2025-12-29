@@ -1,4 +1,3 @@
-// TODO MIG import Vue from 'vue'
 import axios from 'axios'
 import _ from 'lodash'
 import BigNumber from 'bignumber.js'
@@ -27,6 +26,7 @@ import {
   updateRowMetadataType,
   getRowMetadata,
   extractChangedFields,
+  mergeRowMetadata,
 } from '@baserow/modules/database/utils/row'
 import { getDefaultSearchModeFromEnv } from '@baserow/modules/database/utils/search'
 import { fieldValuesAreEqualInObjects } from '@baserow/modules/database/utils/groupBy'
@@ -354,7 +354,6 @@ export const mutations = {
           }
         })
       } else {
-        // Vue.set(state.fieldOptions, key, fieldOptions[key])
         state.fieldOptions[key] = fieldOptions[key]
       }
     })
@@ -364,7 +363,6 @@ export const mutations = {
       const exists = Object.prototype.hasOwnProperty.call(fieldOptions, key)
       if (!exists) {
         delete state.fieldOptions[key]
-        // Vue.delete(state.fieldOptions, key)
       }
     })
   },
@@ -380,7 +378,6 @@ export const mutations = {
   DELETE_FIELD_OPTIONS(state, fieldId) {
     if (Object.prototype.hasOwnProperty.call(state.fieldOptions, fieldId)) {
       delete state.fieldOptions[fieldId]
-      //Vue.delete(state.fieldOptions, fieldId)
     }
   },
   SET_ROW_HOVER(state, { row, value }) {
@@ -452,7 +449,6 @@ export const mutations = {
   },
   SET_MULTISELECT_ACTIVE(state, value) {
     state.multiSelectActive = value
-    //Vue.set(state, 'multiSelectActive', value)
   },
   CLEAR_AREA_SELECTION(state) {
     state.multiSelectHolding = false
@@ -527,6 +523,9 @@ export const mutations = {
     const index = state.rows.findIndex((item) => item.id === row.id)
     if (index !== -1) {
       const existingRowState = state.rows[index]
+      if (!existingRowState._) {
+        populateRow(existingRowState, {}, false)
+      }
       existingRowState._.fetching = value
       existingRowState._.fullyLoaded = !value
     }
@@ -537,11 +536,10 @@ export const mutations = {
       const existingRowState = state.rows[index]
       Object.assign(existingRowState, values)
       if (metadata) {
-        // Use single Vue.set to ensure reactivity
         if (!existingRowState._) {
-          Vue.set(existingRowState, '_', { metadata })
+          populateRow(existingRowState, metadata, false)
         } else {
-          Vue.set(existingRowState._, 'metadata', metadata)
+          existingRowState._.metadata = metadata
         }
       }
     }
@@ -557,33 +555,16 @@ export const mutations = {
     const index = state.rows.findIndex((item) => item.id === row.id)
     if (index !== -1) {
       const existingRowState = state.rows[index]
-
-      // Deep merge new metadata with existing metadata
       const existingMetadata = existingRowState._?.metadata || {}
-      const mergedMetadata = { ...existingMetadata }
+      const mergedMetadata = mergeRowMetadata(existingMetadata, metadata)
 
-      // Deep merge each metadata type (e.g., ai_field)
-      Object.keys(metadata).forEach((metadataType) => {
-        if (!mergedMetadata[metadataType]) {
-          mergedMetadata[metadataType] = {}
-        }
-        // Deep merge field-level metadata, but remove fields with null values
-        const newTypeMetadata = { ...mergedMetadata[metadataType] }
-        Object.entries(metadata[metadataType]).forEach(([key, value]) => {
-          if (value === null) {
-            delete newTypeMetadata[key]
-          } else {
-            newTypeMetadata[key] = value
-          }
-        })
-        mergedMetadata[metadataType] = newTypeMetadata
-      })
-
-      // Use single Vue.set to ensure reactivity - create _ object with metadata if needed
       if (!existingRowState._) {
-        Vue.set(existingRowState, '_', { metadata: mergedMetadata })
+        populateRow(existingRowState, mergedMetadata, false)
       } else {
-        Vue.set(existingRowState._, 'metadata', mergedMetadata)
+        existingRowState._ = {
+          ...existingRowState._,
+          metadata: mergedMetadata,
+        }
       }
     }
   },
@@ -708,7 +689,6 @@ export const mutations = {
         )
 
         if (existingIndex !== -1) {
-          // Vue.set(existingMetadata[newGroupField], existingIndex, newGroupEntry)
           existingMetadata[newGroupField][existingIndex] = newGroupEntry
         } else {
           existingMetadata[newGroupField].push(newGroupEntry)
@@ -755,7 +735,6 @@ export const mutations = {
             count -= 1
           }
 
-          //Vue.set(entry, 'count', count)
           entry.count = count
           updated = true
         }
@@ -775,12 +754,10 @@ export const mutations = {
   SET_PENDING_FIELD_OPERATIONS(state, { fieldId, rowIds, value }) {
     const addKey = (fieldId, rowId) => {
       const key = getPendingOperationKey(fieldId, rowId)
-      //Vue.set(state.pendingFieldOps, key, [fieldId, rowId])
       state.pendingFieldOps[key] = [fieldId, rowId]
     }
     const deleteKey = (fieldId, rowId) => {
       const key = getPendingOperationKey(fieldId, rowId)
-      //Vue.delete(state.pendingFieldOps, key)
       delete state.pendingFieldOps[key]
     }
     const operation = value ? addKey : deleteKey
@@ -790,7 +767,6 @@ export const mutations = {
   CLEAR_PENDING_FIELD_OPERATIONS(state, { fieldIds, rowId }) {
     fieldIds.forEach((fieldId) => {
       const key = getPendingOperationKey(fieldId, rowId)
-      // Vue.delete(state.pendingFieldOps, key)
       delete state.pendingFieldOps[key]
     })
   },
@@ -2546,7 +2522,7 @@ export const actions = {
    * experience for the user.
    */
   async updateRowValue(
-    { commit, dispatch, getters },
+    { commit, dispatch, getters, rootGetters },
     {
       table,
       view,
@@ -2661,6 +2637,8 @@ export const actions = {
         const updatedFieldIds =
           batchResponse.data.metadata?.updated_field_ids || []
 
+        const rowsMetadata = batchResponse.data.metadata?.rows || {}
+
         const otherFieldsChangedInBackend = !_.isEqual(updatedFieldIds, [
           field.id,
         ])
@@ -2682,8 +2660,39 @@ export const actions = {
           if (existing === undefined) {
             continue
           }
+
+          const rowMetadata = rowsMetadata[updatedRowData.id] || {}
+
+          if (Object.keys(rowMetadata).length > 0) {
+            commit('REPLACE_ROW_METADATA', {
+              row: existing,
+              metadata: rowMetadata,
+            })
+          }
+
+          updatedFieldIds.forEach((fieldId) => {
+            const updatedField = rootGetters['field/get'](fieldId)
+            if (updatedField) {
+              const fieldType = this.$registry.get('field', updatedField.type)
+              fieldType.onRowRealtimeUpdate(
+                { store: this, commit, getters, dispatch },
+                updatedField,
+                existing,
+                { ...existing, ...rowData },
+                rowMetadata
+              )
+            }
+          })
+
           // Update the remaining values like formula, which depend on the backend.
           await updateValues(existing, rowData, true)
+
+          // Update row modal metadata
+          dispatch(
+            'rowModal/replaceRowMetadata',
+            { rowId: updatedRowData.id, metadata: rowMetadata },
+            { root: true }
+          )
 
           // If we can't optimistically update the row, refresh it to stop the loading
           // state, show proper messages, and update its position and state. Also, if the

@@ -2,7 +2,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Case, F, Func, JSONField, Value, When
 
 from baserow.contrib.database.table.constants import FIELD_METADATA_COLUMN_NAME
@@ -18,7 +18,6 @@ class JSONBRemoveKey(Func):
     output_field = models.JSONField()
 
     def as_sql(self, compiler, connection, **extra_context):
-        # Ensure the operator is infix by using arg_joiner
         return super().as_sql(
             compiler,
             connection,
@@ -38,26 +37,6 @@ class MetadataUpdate:
 
 
 class FieldMetadataHandler:
-    """
-    Centralized handler for managing field metadata stored in the
-    field_metadata JSONB column.
-
-    This handler ensures consistent access patterns and provides
-    utilities for updating metadata efficiently using PostgreSQL's
-    native JSONB functions for atomic operations.
-
-    API Summary:
-    - is_metadata_available(model) - Check if metadata column exists
-    - get_model_field() - Get the field definition for adding the column
-    - get_metadata(model, row_ids, field_ids) - Get metadata for rows (always list)
-    - set_metadata(model, updates, merge) - Set metadata for rows (always list)
-    - delete_metadata(model, field_id, row_ids) - Delete field metadata
-    - get_rows_by_metadata(model, field_id, key, value) - Query by metadata
-    - get_rows_with_metadata(model, field_id) - Get rows that have metadata
-    - on_field_updated(field, field_type_changed) - Handle field updates
-    - on_field_deleted(field) - Handle field deletion
-    """
-
     METADATA_COLUMN = FIELD_METADATA_COLUMN_NAME
 
     @classmethod
@@ -70,10 +49,6 @@ class FieldMetadataHandler:
 
         :param model: The generated table model class
         :return: True if metadata column exists, False otherwise
-
-        Example:
-            >>> if FieldMetadataHandler.is_metadata_available(model):
-            >>>     FieldMetadataHandler.set_metadata(...)
         """
 
         return hasattr(model, cls.METADATA_COLUMN)
@@ -113,23 +88,6 @@ class FieldMetadataHandler:
         :param field_ids: Optional list of field IDs to filter by.
             If None, returns metadata for all fields.
         :return: Nested dictionary of {row_id: {field_id: metadata}}
-
-        Example:
-            >>> # Multiple rows
-            >>> result = FieldMetadataHandler.get_metadata(
-            ...     model=table.get_model(),
-            ...     row_ids=[1, 2, 3],
-            ...     field_ids=[456, 789]
-            ... )
-            >>> # Returns: {1: {456: {"ok": True}}, 2: {789: {"ok": False}}}
-            >>>
-            >>> # Single row lookup
-            >>> result = FieldMetadataHandler.get_metadata(
-            ...     model=table.get_model(),
-            ...     row_ids=[123],
-            ...     field_ids=[456]
-            ... )
-            >>> metadata = result.get(123, {}).get(456)
         """
 
         if not cls.is_metadata_available(model):
@@ -156,7 +114,6 @@ class FieldMetadataHandler:
                 except ValueError:
                     continue
 
-                # Filter by field_ids if specified
                 if field_ids is not None and field_id not in field_ids:
                     continue
 
@@ -192,30 +149,9 @@ class FieldMetadataHandler:
         :param merge: If True, merge with existing metadata. If False,
             replace completely. Defaults to True.
 
-        Example:
-            >>> # Single update (use list with one element)
-            >>> FieldMetadataHandler.set_metadata(
-            ...     model=table.get_model(),
-            ...     updates=[MetadataUpdate(
-            ...         row_id=123,
-            ...         field_id=456,
-            ...         metadata={"status": "success"}
-            ...     )]
-            ... )
-            >>> # Multiple updates
-            >>> FieldMetadataHandler.set_metadata(
-            ...     model=table.get_model(),
-            ...     updates=[
-            ...         MetadataUpdate(row_id=1, field_id=123, metadata={"ok": True}),
-            ...         MetadataUpdate(row_id=2, field_id=123, metadata={"ok": False}),
-            ...     ]
-            ... )
         """
 
         if not cls.is_metadata_available(model):
-            return
-
-        if not updates:
             return
 
         if merge:
@@ -233,23 +169,18 @@ class FieldMetadataHandler:
         Internal method to set metadata using merge mode (atomic jsonb_set).
         """
 
-        # Group updates by row_id for efficient processing
         updates_by_row = defaultdict(dict)
         for update in updates:
             field_id_str = str(update.field_id)
             updates_by_row[update.row_id][field_id_str] = update.metadata
 
-        # Build a single UPDATE query that updates all rows at once
         row_ids = list(updates_by_row.keys())
 
-        # Build CASE statement for each row
         whens = []
         for row_id, field_updates in updates_by_row.items():
-            # Chain jsonb_set operations for each field
             jsonb_expr = F(cls.METADATA_COLUMN)
 
             for field_id, metadata in field_updates.items():
-                # Use COALESCE to handle NULL field_metadata
                 jsonb_expr = Func(
                     Func(
                         jsonb_expr,
@@ -266,7 +197,6 @@ class FieldMetadataHandler:
 
             whens.append(When(id=row_id, then=jsonb_expr))
 
-        # Execute single UPDATE with CASE for all rows
         if whens:
             model.objects.filter(id__in=row_ids).update(
                 **{cls.METADATA_COLUMN: Case(*whens, default=F(cls.METADATA_COLUMN))}
@@ -283,28 +213,29 @@ class FieldMetadataHandler:
         Fetches rows and replaces field metadata completely.
         """
 
-        # Group updates by row_id
         updates_by_row = defaultdict(dict)
         for update in updates:
             field_id_str = str(update.field_id)
             updates_by_row[update.row_id][field_id_str] = update.metadata
 
         row_ids = list(updates_by_row.keys())
-        rows = model.objects.filter(id__in=row_ids)
 
-        rows_to_update = []
-        for row in rows:
-            field_metadata = getattr(row, cls.METADATA_COLUMN, {}) or {}
-            field_updates = updates_by_row.get(row.id, {})
+        with transaction.atomic():
+            rows = model.objects.select_for_update().filter(id__in=row_ids)
 
-            for field_id, metadata in field_updates.items():
-                field_metadata[field_id] = metadata
+            rows_to_update = []
+            for row in rows:
+                field_metadata = getattr(row, cls.METADATA_COLUMN, {}) or {}
+                field_updates = updates_by_row.get(row.id, {})
 
-            setattr(row, cls.METADATA_COLUMN, field_metadata)
-            rows_to_update.append(row)
+                for field_id, metadata in field_updates.items():
+                    field_metadata[field_id] = metadata
 
-        if rows_to_update:
-            model.objects.bulk_update(rows_to_update, [cls.METADATA_COLUMN])
+                setattr(row, cls.METADATA_COLUMN, field_metadata)
+                rows_to_update.append(row)
+
+            if rows_to_update:
+                model.objects.bulk_update(rows_to_update, [cls.METADATA_COLUMN])
 
     @classmethod
     def delete_metadata(
@@ -332,18 +263,13 @@ class FieldMetadataHandler:
 
         field_id_str = str(field_id)
 
-        # Build base queryset
         queryset = model.objects.filter(
             **{f"{cls.METADATA_COLUMN}__has_key": field_id_str}
         )
 
-        # Filter by row_ids if specified
         if row_ids is not None:
-            if not row_ids:
-                return
             queryset = queryset.filter(id__in=row_ids)
 
-        # Use custom JSONBRemoveKey to properly handle JSONB - operator
         queryset.update(
             **{
                 cls.METADATA_COLUMN: JSONBRemoveKey(
@@ -371,15 +297,6 @@ class FieldMetadataHandler:
         :param key: The metadata key to filter by
         :param value: The value to match
         :return: QuerySet of rows matching the criteria
-
-        Example:
-            >>> # Get all rows where field 123 has ok=False
-            >>> error_rows = FieldMetadataHandler.get_rows_by_metadata(
-            ...     model=table.get_model(),
-            ...     field_id=123,
-            ...     key="ok",
-            ...     value=False
-            ... )
         """
 
         if not cls.is_metadata_available(model):
@@ -403,12 +320,6 @@ class FieldMetadataHandler:
         :param model: The generated table model class
         :param field_id: The field ID to query
         :return: QuerySet of rows with metadata for this field
-
-        Example:
-            >>> rows_with_metadata = FieldMetadataHandler.get_rows_with_metadata(
-            ...     model=table.get_model(),
-            ...     field_id=123
-            ... )
         """
 
         if not cls.is_metadata_available(model):
@@ -416,7 +327,6 @@ class FieldMetadataHandler:
 
         field_id_str = str(field_id)
 
-        # Use JSONB ? operator to check if key exists
         return model.objects.filter(**{f"{cls.METADATA_COLUMN}__has_key": field_id_str})
 
     @classmethod
@@ -430,10 +340,6 @@ class FieldMetadataHandler:
 
         :param field: The field that was updated
         :param field_type_changed: Whether the field type changed
-
-        Example:
-            >>> # After updating field 123
-            >>> FieldMetadataHandler.on_field_updated(field, field_type_changed=True)
         """
 
         if not field_type_changed:
@@ -452,9 +358,6 @@ class FieldMetadataHandler:
         any associated metadata.
 
         :param field: The field that was deleted
-
-        Example:
-            >>> FieldMetadataHandler.on_field_deleted(field)
         """
 
         model = field.table.get_model(field_ids=[], add_dependencies=False)

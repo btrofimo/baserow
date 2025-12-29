@@ -103,6 +103,18 @@ export default {
     save() {
       this.opened = false
       this.editing = false
+
+      if (this.$refs.cell && this.$refs.cell.copy !== undefined) {
+        const newValue = this.$refs.cell.beforeSave
+          ? this.$refs.cell.beforeSave(this.$refs.cell.copy)
+          : this.$refs.cell.copy
+        const oldValue = this.value
+
+        if (newValue !== oldValue) {
+          this.$emit('update', newValue, oldValue)
+        }
+      }
+
       this.afterSave()
     },
     canSaveByPressingEnter(event) {
