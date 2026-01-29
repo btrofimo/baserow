@@ -19,6 +19,7 @@ import {
 import {
   extractChangedFields,
   getRowMetadata,
+  mergeRowMetadata,
   prepareNewOldAndUpdateRequestValues,
   prepareRowForRequest,
   updateRowMetadataType,
@@ -225,34 +226,14 @@ export const mutations = {
    * Deep merges new metadata with existing metadata, removing keys with null values.
    */
   UPDATE_ROW_METADATA(state, { row, metadata }) {
-    // Find the row in any date stack
     for (const stack of Object.values(state.dateStacks)) {
       const index = stack.results.findIndex(
         (item) => item && item.id === row.id
       )
       if (index !== -1) {
         const existingRowState = stack.results[index]
-
-        // Deep merge new metadata with existing metadata
         const existingMetadata = existingRowState._?.metadata || {}
-        const mergedMetadata = { ...existingMetadata }
-
-        // Deep merge each metadata type (e.g., ai_field)
-        Object.keys(metadata).forEach((metadataType) => {
-          if (!mergedMetadata[metadataType]) {
-            mergedMetadata[metadataType] = {}
-          }
-          // Deep merge field-level metadata, but remove fields with null values
-          const newTypeMetadata = { ...mergedMetadata[metadataType] }
-          Object.entries(metadata[metadataType]).forEach(([key, value]) => {
-            if (value === null) {
-              delete newTypeMetadata[key]
-            } else {
-              newTypeMetadata[key] = value
-            }
-          })
-          mergedMetadata[metadataType] = newTypeMetadata
-        })
+        const mergedMetadata = mergeRowMetadata(existingMetadata, metadata)
 
         if (!existingRowState._) {
           existingRowState._ = { metadata: mergedMetadata }

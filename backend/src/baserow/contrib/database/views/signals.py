@@ -96,9 +96,6 @@ def view_loaded_create_indexes_and_columns(sender, view, table_model, **kwargs):
     if not table.field_metadata_column_added:
         setup_field_metadata_column.delay(table_id=view.table.id)
 
-    if not table.field_metadata_column_added:
-        setup_field_metadata_column.delay(table_id=view.table.id)
-
 
 @receiver(field_signals.fields_type_changed)
 def view_fields_type_changed(sender, fields, **kwargs):
