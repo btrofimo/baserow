@@ -1,7 +1,6 @@
 import { notifyIf } from '@baserow/modules/core/utils/error'
 
 import FieldService from '@baserow_premium/services/field'
-import { AI_FIELD_STATUS } from '@baserow_premium/constants'
 
 export default {
   computed: {
@@ -44,35 +43,16 @@ export default {
         return
       }
 
-      const rowId = this.row.id
-      const previousMetadata =
-        this.row?._?.metadata?.ai_field?.[this.field.id] || null
-
-      // Optimistic update to store
-      this.$store.commit('rowModal/UPDATE_ROW_METADATA', {
-        rowId,
-        metadata: {
-          ai_field: {
-            [this.field.id]: { status: AI_FIELD_STATUS.GENERATING },
-          },
-        },
-      })
-
       try {
-        await FieldService(this.$client).generateAIFieldValues(this.field.id, [
-          rowId,
-        ])
+        await this.$store.dispatch('rowModal/generateAIFieldValue', {
+          fieldId: this.field.id,
+          rowId: this.row.id,
+          row: this.row,
+          generateFn: (fieldId, rowId) =>
+            FieldService(this.$client).generateAIFieldValues(fieldId, [rowId]),
+        })
       } catch (error) {
         notifyIf(error, 'field')
-        // Rollback on error
-        this.$store.commit('rowModal/UPDATE_ROW_METADATA', {
-          rowId,
-          metadata: {
-            ai_field: {
-              [this.field.id]: previousMetadata,
-            },
-          },
-        })
       }
     },
   },

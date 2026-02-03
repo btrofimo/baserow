@@ -27,6 +27,7 @@ from baserow.contrib.database.rows.signals import (
     rows_ai_values_generation_error,
     rows_metadata_updated,
 )
+from baserow.contrib.database.table.handler import TableHandler
 from baserow.contrib.database.table.models import GeneratedTableModel
 from baserow.contrib.database.views.exceptions import ViewDoesNotExist
 from baserow.contrib.database.views.handler import ViewHandler
@@ -260,6 +261,9 @@ class GenerateAIValuesJobType(JobType):
         ai_field = self._get_field(job.field_id)
         table = ai_field.table
         workspace = table.database.workspace
+
+        TableHandler().ensure_field_metadata_column_exists(table)
+
         model = table.get_model()
 
         CoreHandler().check_permissions(
@@ -287,7 +291,7 @@ class GenerateAIValuesJobType(JobType):
         )
 
         rows_progress = ChildProgressBuilder.build(progress_builder, rows.count())
-        generator = AIValueGenerator(user, ai_field, self, rows_progress)
+        generator = AIValueGenerator(user, ai_field, job, rows_progress)
         try:
             generator.process(rows.order_by("id"))
         finally:
@@ -316,7 +320,7 @@ class AIValueGenerator:
         self,
         user: AbstractUser,
         ai_field: AIField,
-        signal_sender: GenerateAIValuesJob | Any | None = None,
+        job: GenerateAIValuesJob | None = None,
         progress: Progress | None = None,
     ):
         self.user = user
@@ -324,7 +328,7 @@ class AIValueGenerator:
         self.ai_field = ai_field
         self.table = table = ai_field.table
         self.model = table.get_model()
-        self.signal_sender = signal_sender
+        self.job = job
         self.workspace = table.database.workspace
         self.max_concurrency = self.ai_field.ai_max_concurrent_generations
 
@@ -382,7 +386,7 @@ class AIValueGenerator:
             # fail. We therefore want to handle the error gracefully.
             # Note: rows might be a generator, so we can't pass it directly
             rows_ai_values_generation_error.send(
-                self.signal_sender,
+                self.job,
                 user=self.user,
                 rows=[],
                 field=self.ai_field,
@@ -564,7 +568,7 @@ class AIValueGenerator:
         """
 
         if self.has_errors:
-            raise GenerativeAIPromptError(f"AI model responded with errors.")
+            raise GenerativeAIPromptError("AI model responded with errors.")
 
     def process(self, rows: QuerySet[GeneratedTableModel]):
         """
@@ -637,10 +641,13 @@ class AIValueGenerator:
 
     def can_schedule_next(self) -> bool:
         """
-        Returns True, if there's a free slot to process.
+        Returns True, if there's a free slot to process and no errors have occurred.
         """
 
-        return self.generate_more_rows and len(self.in_process) < self.max_concurrency
+        if self.has_errors:
+            return False
+        total_pending = len(self.in_process) + len(self.pending_rows_buffer)
+        return self.generate_more_rows and total_pending < self.max_concurrency
 
     def is_finished(self) -> bool:
         """
@@ -678,7 +685,17 @@ class AIValueGenerator:
     def update_progress(self, row: GeneratedTableModel):
         """
         Update internal progress state.
+
+        Checks for job cancellation before incrementing progress. If cancelled,
+        stops scheduling new rows so remaining unprocessed rows can be cleaned up.
         """
+
+        # Check for job cancellation before incrementing progress
+        if self.job is not None:
+            # Refresh without fields= parameter because `cancelled` is on parent Job model
+            self.job.refresh_from_db()
+            if self.job.cancelled:
+                self.stop_scheduling_rows()
 
         self.finished += 1
         self.in_process.remove(row.id)
@@ -690,15 +707,18 @@ class AIValueGenerator:
         Prepares and adds the next row to the work queue.
 
         Rows are buffered and metadata is set/broadcast in chunks to avoid
-        sending large WS messages. When the buffer reaches chunk_size,
-        metadata is set for all buffered rows, they are scheduled, and the
-        buffer is cleared.
+        sending large WS messages. When the buffer reaches chunk_size or
+        max_concurrency (whichever is smaller), metadata is set for all
+        buffered rows, they are scheduled, and the buffer is cleared.
         """
 
         row = next(rows_iter)
         self.pending_rows_buffer.append(row)
 
-        if len(self.pending_rows_buffer) >= self.chunk_size:
+        # Flush when buffer reaches chunk_size OR max_concurrency to prevent
+        # infinite loop when can_schedule_next() stops scheduling due to
+        # pending_rows_buffer being full but buffer never getting flushed.
+        if len(self.pending_rows_buffer) >= min(self.chunk_size, self.max_concurrency):
             self._flush_pending_rows_buffer(executor)
 
     def _flush_pending_rows_buffer(self, executor: Executor):
@@ -729,27 +749,25 @@ class AIValueGenerator:
 
     def _cleanup_unprocessed_rows(self):
         """
-        Clear 'generating' metadata for rows that were set but never scheduled.
-        Called on error, cancellation, or any abnormal exit.
+        Clear 'generating' metadata for rows that were marked as generating but
+        never scheduled (due to early error or cancellation before flush).
         """
 
         if not self.has_metadata_column:
             return
 
-        unprocessed_row_ids = [
+        rows_to_clear = [
             row_id
             for row_id in self.all_row_ids_with_generating_status
             if row_id not in self.scheduled_row_ids
         ]
 
-        if unprocessed_row_ids:
+        if rows_to_clear:
             with transaction.atomic():
-                AIFieldMetadataHandler.clear_metadata(
-                    self.ai_field, unprocessed_row_ids
-                )
+                AIFieldMetadataHandler.clear_metadata(self.ai_field, rows_to_clear)
                 rows_metadata_updated.send(
-                    sender=self.signal_sender,
+                    sender=self.job,
                     table=self.table,
-                    row_ids=unprocessed_row_ids,
+                    row_ids=rows_to_clear,
                     user=self.user,
                 )

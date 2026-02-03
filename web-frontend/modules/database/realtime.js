@@ -204,22 +204,6 @@ export const registerRealtimeEvents = (realtime) => {
       const rowBeforeUpdate = data.rows_before_update[i] || { id: row.id }
       const rowMetadata = data.metadata[row.id] || {}
 
-      if (data.updated_field_ids && data.updated_field_ids.length > 0) {
-        data.updated_field_ids.forEach((fieldId) => {
-          const field = store.getters['field/get'](fieldId)
-          if (field) {
-            const fieldType = app.$registry.get('field', field.type)
-            fieldType.onRowRealtimeUpdate(
-              context,
-              field,
-              rowBeforeUpdate,
-              row,
-              rowMetadata
-            )
-          }
-        })
-      }
-
       for (const viewType of viewTypes) {
         await viewType.rowUpdated(
           context,

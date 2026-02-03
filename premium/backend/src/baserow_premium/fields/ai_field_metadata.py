@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import TYPE_CHECKING, Optional, Union
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 
@@ -32,6 +33,9 @@ class AIGenerationStatus(Enum):
 
         Returns None if no metadata (row was never processed - this is normal state).
 
+        If a row has been generating for longer than BASEROW_JOB_SOFT_TIME_LIMIT,
+        it is considered timed out and returns None (to clear stuck UI states).
+
         :param metadata: The metadata dictionary for a field
         :return: AIGenerationStatus or None if no metadata
         """
@@ -39,8 +43,15 @@ class AIGenerationStatus(Enum):
         if not metadata:
             return None
 
-        # Has start but no end = currently generating
+        # Has start but no end = currently generating (unless timed out)
         if AIMetadataKeys.START in metadata and AIMetadataKeys.END not in metadata:
+            start_time = metadata.get(AIMetadataKeys.START)
+            if start_time:
+                timeout = settings.BASEROW_JOB_SOFT_TIME_LIMIT
+                elapsed = timezone.now().timestamp() - start_time
+                if elapsed > timeout:
+                    # Generation has exceeded job time limit - treat as timed out
+                    return None
             return cls.GENERATING
 
         # Has end with ok=True = success

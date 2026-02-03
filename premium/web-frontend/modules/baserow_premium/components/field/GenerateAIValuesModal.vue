@@ -225,7 +225,9 @@ export default {
       this.loading = false
     },
     valuesChanged() {
-      this.isValid = this.$refs.form.isFormValid()
+      if (this.$refs.form) {
+        this.isValid = this.$refs.form.isFormValid()
+      }
     },
   },
 }

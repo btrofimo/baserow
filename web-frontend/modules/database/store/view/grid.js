@@ -551,19 +551,29 @@ export const mutations = {
    * in the buffer. When rows leave and re-enter the buffer, fresh metadata is
    * fetched from the API along with the row data.
    */
-  UPDATE_ROW_METADATA(state, { row, metadata }) {
+  UPDATE_ROW_METADATA(
+    state,
+    { row, metadata, rowMetadataType, updateFunction }
+  ) {
     const index = state.rows.findIndex((item) => item.id === row.id)
     if (index !== -1) {
       const existingRowState = state.rows[index]
-      const existingMetadata = existingRowState._?.metadata || {}
-      const mergedMetadata = mergeRowMetadata(existingMetadata, metadata)
 
-      if (!existingRowState._) {
-        populateRow(existingRowState, mergedMetadata, false)
+      if (updateFunction) {
+        // Type-specific update using updateFunction
+        updateRowMetadataType(existingRowState, rowMetadataType, updateFunction)
       } else {
-        existingRowState._ = {
-          ...existingRowState._,
-          metadata: mergedMetadata,
+        // Direct merge of metadata
+        const existingMetadata = existingRowState._?.metadata || {}
+        const mergedMetadata = mergeRowMetadata(existingMetadata, metadata)
+
+        if (!existingRowState._) {
+          populateRow(existingRowState, mergedMetadata, false)
+        } else {
+          existingRowState._ = {
+            ...existingRowState._,
+            metadata: mergedMetadata,
+          }
         }
       }
     }
@@ -573,9 +583,6 @@ export const mutations = {
   },
   UPDATE_ROW_FIELD_VALUE(state, { row, field, value }) {
     row[`field_${field.id}`] = value
-  },
-  UPDATE_ROW_METADATA_TYPE(state, { row, rowMetadataType, updateFunction }) {
-    updateRowMetadataType(row, rowMetadataType, updateFunction)
   },
   FINALIZE_ROWS_IN_BUFFER(state, { oldRows, newRows, fields }) {
     const stateRowsCopy = { ...state.rows }
@@ -2522,7 +2529,7 @@ export const actions = {
    * experience for the user.
    */
   async updateRowValue(
-    { commit, dispatch, getters, rootGetters },
+    { commit, dispatch, getters },
     {
       table,
       view,
@@ -2670,29 +2677,8 @@ export const actions = {
             })
           }
 
-          updatedFieldIds.forEach((fieldId) => {
-            const updatedField = rootGetters['field/get'](fieldId)
-            if (updatedField) {
-              const fieldType = this.$registry.get('field', updatedField.type)
-              fieldType.onRowRealtimeUpdate(
-                { store: this, commit, getters, dispatch },
-                updatedField,
-                existing,
-                { ...existing, ...rowData },
-                rowMetadata
-              )
-            }
-          })
-
           // Update the remaining values like formula, which depend on the backend.
           await updateValues(existing, rowData, true)
-
-          // Update row modal metadata
-          dispatch(
-            'rowModal/replaceRowMetadata',
-            { rowId: updatedRowData.id, metadata: rowMetadata },
-            { root: true }
-          )
 
           // If we can't optimistically update the row, refresh it to stop the loading
           // state, show proper messages, and update its position and state. Also, if the
@@ -3026,7 +3012,7 @@ export const actions = {
    * that is will be deleted or created depending if was already in the view.
    */
   async updatedExistingRow(
-    { commit, getters, dispatch, rootGetters },
+    { commit, getters, dispatch },
     { view, fields, row, values, metadata = {}, updatedFieldIds = [] }
   ) {
     const { $registry, $client, $i18n, $config } = this
@@ -3034,24 +3020,6 @@ export const actions = {
     const newRow = Object.assign(clone(row), values)
     populateRow(oldRow, metadata)
     populateRow(newRow, metadata)
-
-    // Delegate to field types to handle their specific realtime update logic
-    // This allows each field type to decide what to do when metadata changes
-    // Note: metadata is already the row-specific metadata (not keyed by row.id)
-    // as it's passed from viewTypes.rowUpdated which receives data.metadata[row.id]
-    updatedFieldIds.forEach((fieldId) => {
-      const field = rootGetters['field/get'](fieldId)
-      if (field) {
-        const fieldType = this.app.$registry.get('field', field.type)
-        fieldType.onRowRealtimeUpdate(
-          { store: this, commit, getters, dispatch },
-          field,
-          oldRow,
-          newRow,
-          metadata || {}
-        )
-      }
-    })
 
     await dispatch('updateMatchFilters', { view, row: oldRow, fields })
     await dispatch('updateSearchMatchesForRow', { row: oldRow, fields })
@@ -3563,7 +3531,7 @@ export const actions = {
     const { $registry, $client, $i18n, $config } = this
     const row = getters.getRow(rowId)
     if (row) {
-      commit('UPDATE_ROW_METADATA_TYPE', {
+      commit('UPDATE_ROW_METADATA', {
         row,
         rowMetadataType,
         updateFunction,
