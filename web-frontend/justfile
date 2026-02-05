@@ -78,22 +78,15 @@ install:
 # Code Quality & Linting
 # =============================================================================
 
-# Run all linters (eslint + stylelint)
+# Run all linters (eslint + stylelint + prettier)
 [group('4 - code-quality')]
 lint:
-    yarn run eslint
-    yarn run stylelint
-    yarn run prettier --check 'modules/**/*.scss'
+    yarn run lint
 
 # Fix code style issues
 [group('4 - code-quality')]
 fix:
     yarn run fix
-
-# Format SCSS files with Prettier
-[group('4 - code-quality')]
-format-scss:
-    yarn run prettier --write 'modules/**/*.scss'
 
 # =============================================================================
 # Testing
@@ -107,7 +100,7 @@ test *ARGS:
 # Run tests with coverage (for CI)
 [group('3 - testing')]
 ci-test:
-    yarn test-coverage
+    yarn test:coverage
 
 # Update Jest snapshots
 [group('3 - testing')]
@@ -134,7 +127,7 @@ storybook:
 # Build Nuxt for production
 [group('5 - build')]
 build-nuxt:
-    yarn run build-local
+    yarn run build
 
 # =============================================================================
 # Cleanup

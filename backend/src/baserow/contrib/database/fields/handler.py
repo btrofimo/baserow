@@ -16,7 +16,7 @@ from typing import (
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
-from django.db import connection
+from django.db import DEFAULT_DB_ALIAS, connection
 from django.db.models import Prefetch, QuerySet
 from django.db.utils import DatabaseError, DataError, ProgrammingError
 
@@ -794,7 +794,9 @@ class FieldHandler(metaclass=baserow_trace_methods(tracer)):
             from_field_type.can_have_select_options
             and not to_field_type.can_have_select_options
         ):
-            SelectOption.objects.filter(field_id=field.id).delete()
+            SelectOption.objects.filter(field_id=field.id)._raw_delete(
+                using=DEFAULT_DB_ALIAS
+            )
 
         FieldMetadataHandler.on_field_updated(field, baserow_field_type_changed)
 
@@ -1186,7 +1188,11 @@ class FieldHandler(metaclass=baserow_trace_methods(tracer)):
         )
 
         if to_delete:
-            SelectOption.objects.filter(field=field, id__in=to_delete).delete()
+            # before_field_options_update already set deleted options to NULL,
+            # so we can safely call _raw_delete without violating any constraints.
+            SelectOption.objects.filter(field=field, id__in=to_delete)._raw_delete(
+                using=DEFAULT_DB_ALIAS
+            )
 
         instance_to_create = []
         for order, select_option in enumerate(select_options):
