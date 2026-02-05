@@ -146,10 +146,6 @@ const updatePositionFn = {
   },
 }
 
-function getPendingOperationKey(fieldId, rowId) {
-  return `${fieldId}-${rowId}`
-}
-
 export const state = () => ({
   // Indicates if multiple cell selection is active
   multiSelectActive: false,
@@ -217,10 +213,6 @@ export const state = () => ({
   fieldAggregationData: {},
   activeGroupBys: [],
   groupByMetadata: {},
-  // Contains a fieldId and rowId string pair that looks like `{fieldId}-{rowId}`. If
-  // in the array, then that cell is a loading state. This is for example used for
-  // fields that use a background worker to compute the value like the AI field.
-  pendingFieldOps: {},
   checkboxSelectedRows: [], // Array of row IDs selected by checkboxes
 })
 
@@ -238,7 +230,6 @@ export const mutations = {
     state.addRowHover = false
     state.activeSearchTerm = ''
     state.hideRowsNotMatchingSearch = true
-    state.pendingFieldOps = {}
     state.checkboxSelectedRows = []
     state.selectionType = null
   },
@@ -578,6 +569,25 @@ export const mutations = {
       }
     }
   },
+  /**
+   * Replaces row metadata in the grid buffer with the provided metadata.
+   * Used when rows_metadata_updated websocket event provides the complete
+   * current metadata state (from all registry types), not a partial delta.
+   */
+  REPLACE_ROW_METADATA(state, { row, metadata }) {
+    const index = state.rows.findIndex((item) => item.id === row.id)
+    if (index !== -1) {
+      const existingRowState = state.rows[index]
+      if (!existingRowState._) {
+        populateRow(existingRowState, metadata, false)
+      } else {
+        existingRowState._ = {
+          ...existingRowState._,
+          metadata,
+        }
+      }
+    }
+  },
   UPDATE_ROW_VALUES(state, { row, values }) {
     Object.assign(row, values)
   },
@@ -756,33 +766,6 @@ export const mutations = {
         })
         existingMetadata[`field_${groupBy.field}`].push(newEntry)
       }
-    })
-  },
-  SET_PENDING_FIELD_OPERATIONS(state, { fieldId, rowIds, value }) {
-    const addKey = (fieldId, rowId) => {
-      const key = getPendingOperationKey(fieldId, rowId)
-      state.pendingFieldOps[key] = [fieldId, rowId]
-    }
-    const deleteKey = (fieldId, rowId) => {
-      const key = getPendingOperationKey(fieldId, rowId)
-      delete state.pendingFieldOps[key]
-    }
-    const operation = value ? addKey : deleteKey
-
-    rowIds.forEach((rowId) => operation(fieldId, rowId))
-  },
-  CLEAR_PENDING_FIELD_OPERATIONS(state, { fieldIds, rowId }) {
-    fieldIds.forEach((fieldId) => {
-      const key = getPendingOperationKey(fieldId, rowId)
-      delete state.pendingFieldOps[key]
-    })
-  },
-  CLEAR_ALL_PENDING_FIELD_OPERATIONS_FOR_FIELD(state, { fieldId }) {
-    const keysToDelete = Object.keys(state.pendingFieldOps).filter(
-      (key) => state.pendingFieldOps[key][0] === fieldId
-    )
-    keysToDelete.forEach((key) => {
-      delete state.pendingFieldOps[key]
     })
   },
   UPDATE_ROW_HEIGHT(state, value) {
@@ -3159,28 +3142,6 @@ export const actions = {
         commit('SET_BUFFER_START_INDEX', getters.getBufferStartIndex + 1)
       }
 
-      // Remove every pending AI field if a value is provided for it. This will make
-      // sure the loading state will stop if the value is updated. This is done even
-      // if the row is not found in the buffer because it could have been removed from
-      // the buffer when scrolling outside the buffer range.
-      const getFieldId = (key) => parseInt(key.split('_')[1])
-      const fieldIdsToClearPendingOperationsFor = Object.entries(values)
-        .filter(
-          ([key, value]) =>
-            key.startsWith('field_') &&
-            // Either the value has changed.
-            (_.isEqual(value, oldRow[key]) ||
-              // Or the backend has just recalculated the value, even if it hasn't
-              // actually changed.
-              updatedFieldIds.includes(getFieldId(key)))
-        )
-        .map(([key, value]) => getFieldId(key))
-
-      commit('CLEAR_PENDING_FIELD_OPERATIONS', {
-        fieldIds: fieldIdsToClearPendingOperationsFor,
-        rowId: row.id,
-      })
-
       // If the row as in the old buffer, but ended up at the first/before or
       // last/after position. This means that we can't know for sure the row should
       // be in the buffer, so it is removed from it.
@@ -3191,8 +3152,10 @@ export const actions = {
     }
   },
   /**
-   * Updates row metadata for specific rows without changing row values.
+   * Replaces row metadata for specific rows without changing row values.
    * This is called when a rows_metadata_updated websocket event is received.
+   * Uses replace (not merge) semantics because the backend regenerates
+   * complete metadata from all registry types for the affected rows.
    */
   updateRowMetadata({ commit, getters }, { rowIds, metadata }) {
     const allRows = getters.getAllRows
@@ -3201,7 +3164,7 @@ export const actions = {
       if (rowIndex > -1) {
         const row = allRows[rowIndex]
         const rowMetadata = metadata[rowId] || {}
-        commit('UPDATE_ROW_METADATA', { row, metadata: rowMetadata })
+        commit('REPLACE_ROW_METADATA', { row, metadata: rowMetadata })
       }
     })
   },
@@ -3579,23 +3542,8 @@ export const actions = {
       fieldIndex: minFieldIndex,
     })
   },
-  /**
-   * Add the fieldId to the list of pending field operations for the given rowIds.
-   * This is used to show a loading spinner when a field is being updated. For example,
-   * the AI field type uses this to show a spinner when the AI values are being
-   * generated in a background task.
-   */
-  setPendingFieldOperations({ commit }, { fieldId, rowIds, value = true }) {
-    commit('SET_PENDING_FIELD_OPERATIONS', { fieldId, rowIds, value })
-  },
-  AIValuesGenerationError({ commit, dispatch }, { fieldId, rowIds }) {
-    const { $registry, $client, $i18n, $config } = this
-    // If rowIds is empty, clear ALL pending operations for this field.
-    if (rowIds.length === 0) {
-      commit('CLEAR_ALL_PENDING_FIELD_OPERATIONS_FOR_FIELD', { fieldId })
-    } else {
-      commit('SET_PENDING_FIELD_OPERATIONS', { fieldId, rowIds, value: false })
-    }
+  AIValuesGenerationError({ dispatch }) {
+    const { $i18n } = this
     dispatch(
       'toast/error',
       {
@@ -3921,10 +3869,6 @@ export const getters = {
   },
   getAdhocSorting(state) {
     return state.adhocSorting
-  },
-  hasPendingFieldOps: (state) => (fieldId, rowId) => {
-    const key = getPendingOperationKey(fieldId, rowId)
-    return state.pendingFieldOps[key] !== undefined
   },
   getCheckboxSelectedRows: (state) => {
     return state.rows.filter((row) =>

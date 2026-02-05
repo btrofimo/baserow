@@ -222,6 +222,26 @@ export const mutations = {
       }
     }
   },
+  /**
+   * Replaces row metadata in the kanban stacks with the provided metadata.
+   * Used when rows_metadata_updated provides complete metadata state.
+   */
+  REPLACE_ROW_METADATA(state, { row, metadata }) {
+    for (const stack of Object.values(state.stacks)) {
+      const index = stack.results.findIndex(
+        (item) => item && item.id === row.id
+      )
+      if (index !== -1) {
+        const existingRowState = stack.results[index]
+        if (!existingRowState._) {
+          existingRowState._ = { metadata }
+        } else {
+          existingRowState._.metadata = metadata
+        }
+        break
+      }
+    }
+  },
   SET_ADHOC_FILTERING(state, adhocFiltering) {
     state.adhocFiltering = adhocFiltering
   },
@@ -1127,13 +1147,19 @@ export const actions = {
    * Updates row metadata for specific rows without changing row values.
    * Called when a rows_metadata_updated websocket event is received.
    */
+  /**
+   * Replaces row metadata for specific rows without changing row values.
+   * Called when a rows_metadata_updated websocket event is received.
+   * Uses replace (not merge) semantics because the backend regenerates
+   * complete metadata from all registry types for the affected rows.
+   */
   updateRowsMetadata({ commit, getters }, { rowIds, metadata }) {
     rowIds.forEach((rowId) => {
       const target = getters.findStackIdAndIndex(rowId)
       if (target !== undefined) {
         const row = target[2]
         const rowMetadata = metadata[rowId] || {}
-        commit('UPDATE_ROW_METADATA', { row, metadata: rowMetadata })
+        commit('REPLACE_ROW_METADATA', { row, metadata: rowMetadata })
       }
     })
   },

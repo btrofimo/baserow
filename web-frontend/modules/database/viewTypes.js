@@ -1213,6 +1213,28 @@ export class GalleryViewType extends BaseBufferedRowViewTypeMixin(ViewType) {
       })
     }
   }
+
+  AIValuesGenerationError(
+    context,
+    tableId,
+    fieldId,
+    rowIds,
+    error,
+    storePrefix = ''
+  ) {
+    if (this.isCurrentView(context.store, tableId)) {
+      context.store.dispatch(
+        'toast/error',
+        {
+          title: context.app.i18n.t('gridView.AIValuesGenerationErrorTitle'),
+          message: context.app.i18n.t(
+            'gridView.AIValuesGenerationErrorMessage'
+          ),
+        },
+        { root: true }
+      )
+    }
+  }
 }
 
 export class FormViewType extends ViewType {

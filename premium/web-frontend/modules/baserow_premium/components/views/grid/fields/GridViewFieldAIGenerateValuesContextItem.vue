@@ -18,6 +18,7 @@
 import { notifyIf } from '@baserow/modules/core/utils/error'
 import FieldService from '@baserow_premium/services/field'
 import PremiumFeatures from '@baserow_premium/features'
+import { AI_FIELD_STATUS } from '@baserow_premium/constants'
 
 export default {
   emits: ['click'],
@@ -85,18 +86,46 @@ export default {
       this.loading = false
 
       const fieldId = this.field.id
-      this.$store.dispatch(
-        this.storePrefix + 'view/grid/setPendingFieldOperations',
-        { fieldId, rowIds, value: true }
-      )
+
+      // Save previous metadata for rollback on error
+      const previousMetadataByRowId = {}
+      for (const row of rows) {
+        previousMetadataByRowId[row.id] =
+          row?._?.metadata?.ai_field?.[fieldId] || null
+      }
+
+      // Set optimistic metadata for each row
+      for (const row of rows) {
+        this.$store.commit(
+          this.storePrefix + 'view/grid/UPDATE_ROW_METADATA',
+          {
+            row,
+            metadata: {
+              ai_field: {
+                [fieldId]: { status: AI_FIELD_STATUS.GENERATING },
+              },
+            },
+          }
+        )
+      }
 
       try {
         await FieldService(this.$client).generateAIFieldValues(fieldId, rowIds)
       } catch (error) {
-        this.$store.dispatch(
-          this.storePrefix + 'view/grid/setPendingFieldOperations',
-          { fieldId, rowIds, value: false }
-        )
+        // Rollback metadata for each row on error
+        for (const row of rows) {
+          this.$store.commit(
+            this.storePrefix + 'view/grid/UPDATE_ROW_METADATA',
+            {
+              row,
+              metadata: {
+                ai_field: {
+                  [fieldId]: previousMetadataByRowId[row.id],
+                },
+              },
+            }
+          )
+        }
         notifyIf(error, 'field')
       }
       this.$emit('click', $event)

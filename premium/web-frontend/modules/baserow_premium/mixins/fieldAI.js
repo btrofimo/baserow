@@ -1,5 +1,6 @@
 import { notifyIf } from '@baserow/modules/core/utils/error'
 
+import { AI_FIELD_STATUS } from '@baserow_premium/constants'
 import FieldService from '@baserow_premium/services/field'
 
 export default {

@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Optional, Union
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
+from django.db import transaction
 from django.utils import timezone
 
 from baserow.contrib.database.fields.metadata_handler import (
@@ -271,13 +272,25 @@ class AIFieldMetadataHandler:
             user, table, row_ids
         )
 
-        table_page_type.broadcast(
-            {
-                "type": "rows_metadata_updated",
-                "table_id": table.id,
-                "row_ids": row_ids,
-                "metadata": metadata,
-            },
-            getattr(user, "web_socket_id", None),
-            table_id=table.id,
+        # Capture values for the closure before on_commit runs.
+        ignore_web_socket_id = getattr(user, "web_socket_id", None)
+        payload = {
+            "type": "rows_metadata_updated",
+            "table_id": table.id,
+            "row_ids": row_ids,
+            "metadata": metadata,
+        }
+
+        # Use on_commit to ensure the broadcast only fires after the DB
+        # transaction commits. When called inside @transaction.atomic (e.g.,
+        # from the API view), this prevents sending WS messages for changes
+        # that might be rolled back. When called outside a transaction (e.g.,
+        # during job execution with _empty_transaction_context), on_commit
+        # fires immediately.
+        transaction.on_commit(
+            lambda: table_page_type.broadcast(
+                payload,
+                ignore_web_socket_id,
+                table_id=table.id,
+            )
         )

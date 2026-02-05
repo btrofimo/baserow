@@ -6,6 +6,7 @@ from django.contrib.auth.models import AbstractUser
 from baserow.contrib.database.fields.registries import field_type_registry
 from baserow.contrib.database.rows.exceptions import RowDoesNotExist
 from baserow.contrib.database.rows.handler import RowHandler
+from baserow.contrib.database.table.handler import TableHandler
 from baserow.contrib.database.table.models import Table
 from baserow.core.db import specific_iterator
 from baserow.core.generative_ai.exceptions import ModelDoesNotBelongToType
@@ -63,6 +64,7 @@ class AIFieldHandler:
         if ai_field.ai_generative_ai_model not in ai_models:
             raise ModelDoesNotBelongToType(model_name=ai_field.ai_generative_ai_model)
 
+        TableHandler().ensure_field_metadata_column_exists(table)
         AIFieldMetadataHandler.set_generating_and_broadcast(ai_field, row_ids, user)
 
         job = JobHandler().create_and_start_job(

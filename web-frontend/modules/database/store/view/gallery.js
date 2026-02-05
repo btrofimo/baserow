@@ -45,6 +45,24 @@ export const mutations = {
       }
     }
   },
+  /**
+   * Replaces row metadata in the gallery buffer with the provided metadata.
+   * Used when rows_metadata_updated provides complete metadata state.
+   */
+  REPLACE_ROW_METADATA(state, { row, metadata }) {
+    const index = state.rows.findIndex((item) => item && item.id === row.id)
+    if (index !== -1) {
+      const existingRowState = state.rows[index]
+      if (!existingRowState._) {
+        populateRow(existingRowState, metadata)
+      } else {
+        existingRowState._ = {
+          ...existingRowState._,
+          metadata,
+        }
+      }
+    }
+  },
 }
 
 export const actions = {
@@ -66,13 +84,19 @@ export const actions = {
    * Updates row metadata for specific rows without changing row values.
    * Called when a rows_metadata_updated websocket event is received.
    */
+  /**
+   * Replaces row metadata for specific rows without changing row values.
+   * Called when a rows_metadata_updated websocket event is received.
+   * Uses replace (not merge) semantics because the backend regenerates
+   * complete metadata from all registry types for the affected rows.
+   */
   updateRowMetadata({ commit, getters }, { rowIds, metadata }) {
     const allRows = getters.getRows
     rowIds.forEach((rowId) => {
       const row = allRows.find((r) => r && r.id === rowId)
       if (row) {
         const rowMetadata = metadata[rowId] || {}
-        commit('UPDATE_ROW_METADATA', { row, metadata: rowMetadata })
+        commit('REPLACE_ROW_METADATA', { row, metadata: rowMetadata })
       }
     })
   },

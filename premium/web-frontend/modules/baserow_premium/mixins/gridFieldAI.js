@@ -6,30 +6,9 @@ import { AI_FIELD_STATUS } from '@baserow_premium/constants'
 /**
  * Check if an AI field is currently generating for a given row.
  */
-function checkIsGenerating(store, storePrefix, fieldId, row) {
-  if (!storePrefix) {
-    return false
-  }
-
-  const hasPendingOps = store.getters[storePrefix + 'view/grid/hasPendingFieldOps'](
-    fieldId,
-    row?.id
-  )
-
-  if (hasPendingOps) {
-    return true
-  }
-
-  const metadata = row?._ && row._.metadata
-
-  if (metadata && metadata.ai_field) {
-    const fieldMetadata = metadata.ai_field[fieldId]
-    if (fieldMetadata?.status === AI_FIELD_STATUS.GENERATING) {
-      return true
-    }
-  }
-
-  return false
+function checkIsGenerating(fieldId, row) {
+  const metadata = row?._?.metadata
+  return metadata?.ai_field?.[fieldId]?.status === AI_FIELD_STATUS.GENERATING
 }
 
 /**
@@ -50,12 +29,7 @@ function checkIsModelAvailable(store, registry, workspaceId, field) {
 export default {
   computed: {
     generating() {
-      return checkIsGenerating(
-        this.$store,
-        this.storePrefix,
-        this.field.id,
-        this.row
-      )
+      return checkIsGenerating(this.field.id, this.row)
     },
     generationError() {
       const metadata = this.row?._ && this.row._.metadata
@@ -107,12 +81,7 @@ export default {
   },
   methods: {
     isGenerating(parent, props) {
-      return checkIsGenerating(
-        parent.$store,
-        props.storePrefix,
-        props.field.id,
-        parent.row
-      )
+      return checkIsGenerating(props.field.id, parent.row)
     },
     isModelAvailable(parent, props) {
       return checkIsModelAvailable(
@@ -143,11 +112,6 @@ export default {
         },
       })
 
-      this.$store.dispatch(
-        this.storePrefix + 'view/grid/setPendingFieldOperations',
-        { fieldId: this.field.id, rowIds: [rowId], value: true }
-      )
-
       try {
         await FieldService(this.$client).generateAIFieldValues(this.field.id, [
           rowId,
@@ -165,11 +129,6 @@ export default {
             },
           },
         })
-
-        this.$store.dispatch(
-          this.storePrefix + 'view/grid/setPendingFieldOperations',
-          { fieldId: this.field.id, rowIds: [rowId], value: false }
-        )
       }
     },
   },
