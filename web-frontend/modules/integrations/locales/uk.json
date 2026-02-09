@@ -211,8 +211,8 @@
         "supportPairingHeading": "2. Підключення до вашого застосунку Slack",
         "supportPairingStep1": "Якщо ваш застосунок новий: перейдіть до \"Settings\" > \"Install App\". Натисніть зелену кнопку, щоб встановити застосунок у ваш робочий простір.",
         "supportPairingStep2": "Скопіюйте ваш \"Bot User OAuth Token\" і збережіть його в полі \"Токен користувача бота\" у цій формі.",
-        "supportSetupStep1": "Перейдіть до вашого робочого простору <a href=\"https://api.slack.com/apps\" target=\"_blank\">.",
-        "supportSetupStep4": "Щоб дозволити вашому додатку надсилати повідомлення, додайте  <pre>chat:write</pre> область."
+        "supportSetupStep1": "Перейдіть до вашого робочого простору &lt;a href=\"https://api.slack.com/apps\" target=\"_blank\"&gt;.",
+        "supportSetupStep4": "Щоб дозволити вашому додатку надсилати повідомлення, додайте  &lt;pre&gt;chat:write&lt;/pre&gt; область."
     },
     "slackWriteMessageServiceForm": {
         "alertMessage": "Ця дія повинна бути пов'язана із застосунком Slack. Дотримуйтесь інструкцій у спливаючому вікні інтеграцій, щоб почати.",
@@ -240,22 +240,22 @@
         "portPlaceholder": "587",
         "useTls": "Використовувати TLS",
         "username": "Ім'я користувача",
-        "usernamePlaceholder": "your-email@example.com",
+        "usernamePlaceholder": "your-email{'@'}example.com",
         "password": "Пароль",
         "passwordPlaceholder": "ваш-пароль"
     },
     "smtpEmailForm": {
         "integrationDropdownLabel": "Інтеграція",
         "fromEmail": "Від кого (Email)",
-        "fromEmailPlaceholder": "sender@example.com",
+        "fromEmailPlaceholder": "sender{'@'}example.com",
         "fromName": "Від кого (Ім'я)",
         "fromNamePlaceholder": "Ваше ім'я",
         "toEmails": "Кому (Email)",
-        "toEmailsPlaceholder": "recipient1@example.com,recipient2@example.com",
+        "toEmailsPlaceholder": "recipient1{'@'}example.com,recipient2{'@'}example.com",
         "ccEmails": "Копія (CC)",
-        "ccEmailsPlaceholder": "cc1@example.com,cc2@example.com",
+        "ccEmailsPlaceholder": "cc1{'@'}example.com,cc2{'@'}example.com",
         "bccEmails": "Прихована копія (BCC)",
-        "bccEmailsPlaceholder": "bcc1@example.com,bcc2@example.com",
+        "bccEmailsPlaceholder": "bcc1{'@'}example.com,bcc2{'@'}example.com",
         "subject": "Тема",
         "subjectPlaceholder": "Тема вашого листа",
         "bodyType": "Тип тіла",
