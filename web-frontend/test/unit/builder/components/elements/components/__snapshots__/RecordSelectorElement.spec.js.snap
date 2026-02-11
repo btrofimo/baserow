@@ -47,6 +47,7 @@ exports[`RecordSelectorElement > does not paginate if API returns 400/404 1`] = 
               <!--v-if-->
               <ul
                 class="select__items"
+                style="display: none;"
                 tabindex="-1"
               >
                 
@@ -64,7 +65,13 @@ exports[`RecordSelectorElement > does not paginate if API returns 400/404 1`] = 
                 </section>
                 
               </ul>
-              <!--v-if-->
+              <div
+                class="select__items--empty"
+              >
+                
+                recordSelectorElement.emptyState
+                
+              </div>
               <!--v-if-->
             </div>
           </div>
@@ -130,6 +137,7 @@ exports[`RecordSelectorElement > does not paginate if API returns 400/404 2`] = 
               <!--v-if-->
               <ul
                 class="select__items"
+                style="display: none;"
                 tabindex="-1"
               >
                 
@@ -147,7 +155,13 @@ exports[`RecordSelectorElement > does not paginate if API returns 400/404 2`] = 
                 </section>
                 
               </ul>
-              <!--v-if-->
+              <div
+                class="select__items--empty"
+              >
+                
+                recordSelectorElement.emptyState
+                
+              </div>
               <!--v-if-->
             </div>
           </div>
@@ -167,6 +181,96 @@ exports[`RecordSelectorElement > does not paginate if API returns 400/404 2`] = 
 `;
 
 exports[`RecordSelectorElement > does not paginate if API returns 400/404 3`] = `
+<div
+  class="control ab-form-group"
+  data-form-error="false"
+>
+  
+  <!--v-if-->
+  <div
+    class="control__wrapper"
+  >
+    <div
+      class="control__elements"
+    >
+      <div
+        class="control__elements-wrapper"
+      >
+        
+        <!--v-if-->
+        <div
+          class="ab-form-group__children"
+        >
+          
+          <div
+            class="ab-dropdown choice-element"
+            tabindex="0"
+          >
+            <a
+              class="ab-dropdown__selected"
+            >
+              
+              <!--v-if-->
+              <span
+                class="ab-dropdown__selected-placeholder"
+              >
+                action.makeChoice
+              </span>
+              
+              <i
+                class="ab-dropdown__toggle-icon iconoir-nav-arrow-down"
+              />
+            </a>
+            <div
+              class="ab-dropdown__items"
+            >
+              <!--v-if-->
+              <ul
+                class="select__items"
+                style="display: none;"
+                tabindex="-1"
+              >
+                
+                <section
+                  class="infinite-scroll"
+                >
+                  
+                  
+                  <div
+                    class="infinite-scroll__loading-wrapper"
+                  >
+                    <!--v-if-->
+                  </div>
+                  <!--v-if-->
+                </section>
+                
+              </ul>
+              <div
+                class="select__items--empty"
+              >
+                
+                recordSelectorElement.emptyState
+                
+              </div>
+              <!--v-if-->
+            </div>
+          </div>
+          
+          <!--v-if-->
+        </div>
+        
+      </div>
+      <!--v-if-->
+      
+      
+    </div>
+    <!--v-if-->
+  </div>
+  
+</div>
+`;
+
+exports[`RecordSelectorElement > resolves suffix formulas 1`] = `
 <div
   class="control ab-form-group"
   data-form-error="false"
@@ -246,358 +350,5 @@ exports[`RecordSelectorElement > does not paginate if API returns 400/404 3`] = 
     <!--v-if-->
   </div>
   
-</div>
-`;
-
-exports[`RecordSelectorElement > resolves suffix formulas 1`] = `
-<div
-  class="control ab-form-group"
->
-  <!---->
-
-  <!---->
-
-  <div
-    class="control__wrapper"
-  >
-    <div
-      class="control__elements"
-    >
-      <div
-        class="control__elements-wrapper"
-      >
-        <!---->
-
-        <div
-          class="ab-form-group__children"
-        >
-          <div
-            class="ab-dropdown choice-element"
-            tabindex="0"
-          >
-            <a
-              class="ab-dropdown__selected"
-            >
-              <!---->
-
-              <span
-                class="ab-dropdown__selected-placeholder"
-              >
-                action.makeChoice
-              </span>
-
-              <i
-                class="ab-dropdown__toggle-icon iconoir-nav-arrow-down"
-              />
-            </a>
-
-            <div
-              class="ab-dropdown__items"
-            >
-              <!---->
-
-              <ul
-                class="select__items"
-                tabindex="-1"
-              >
-
-                <section
-                  class="infinite-scroll"
-                >
-                  <li
-                    class="ab-dropdownitem__item ab-dropdownitem__item--no-options"
-                  >
-                    <a
-                      class="ab-dropdownitem__item-link"
-                    >
-                      <div
-                        class="ab-dropdownitem__item-name"
-                      >
-                        <!---->
-
-                        <span
-                          class="ab-dropdownitem__item-name-text"
-                          title="First - Suffix"
-                        >
-                          First - Suffix
-                        </span>
-                      </div>
-
-                      <!---->
-                    </a>
-
-                    <i
-                      class="ab-dropdownitem__item-active-icon iconoir-check"
-                    />
-                  </li>
-                  <li
-                    class="ab-dropdownitem__item ab-dropdownitem__item--no-options"
-                  >
-                    <a
-                      class="ab-dropdownitem__item-link"
-                    >
-                      <div
-                        class="ab-dropdownitem__item-name"
-                      >
-                        <!---->
-
-                        <span
-                          class="ab-dropdownitem__item-name-text"
-                          title="Second - Suffix"
-                        >
-                          Second - Suffix
-                        </span>
-                      </div>
-
-                      <!---->
-                    </a>
-
-                    <i
-                      class="ab-dropdownitem__item-active-icon iconoir-check"
-                    />
-                  </li>
-
-                  <div
-                    class="infinite-scroll__loading-wrapper"
-                    style="display: none;"
-                  >
-                    <!---->
-                  </div>
-
-                  <!---->
-                </section>
-              </ul>
-
-              <!---->
-
-              <!---->
-            </div>
-          </div>
-
-          <!---->
-        </div>
-      </div>
-
-      <!---->
-
-    </div>
-
-    <!---->
-  </div>
-</div>
-`;
-
-exports[`RecordSelectorElement does not paginate if API returns 400/404 1`] = `
-<div
-  class="control ab-form-group"
->
-  <!---->
-
-  <!---->
-
-  <div
-    class="control__wrapper"
-  >
-    <div
-      class="control__elements"
-    >
-      <div
-        class="control__elements-wrapper"
-      >
-        <!---->
-
-        <div
-          class="ab-form-group__children"
-        >
-          <div
-            class="ab-dropdown choice-element"
-            tabindex="0"
-          >
-            <a
-              class="ab-dropdown__selected"
-            >
-              <!---->
-
-              <span
-                class="ab-dropdown__selected-placeholder"
-              >
-                action.makeChoice
-              </span>
-
-              <i
-                class="ab-dropdown__toggle-icon iconoir-nav-arrow-down"
-              />
-            </a>
-
-            <div
-              class="ab-dropdown__items"
-            >
-              <!---->
-
-              <ul
-                class="select__items"
-                tabindex="-1"
-              >
-
-                <section
-                  class="infinite-scroll"
-                >
-                  <li
-                    class="ab-dropdownitem__item ab-dropdownitem__item--no-options"
-                  >
-                    <a
-                      class="ab-dropdownitem__item-link"
-                    >
-                      <div
-                        class="ab-dropdownitem__item-name"
-                      >
-                        <!---->
-
-                        <span
-                          class="ab-dropdownitem__item-name-text"
-                          title="First"
-                        >
-                          First
-                        </span>
-                      </div>
-
-                      <!---->
-                    </a>
-
-                    <i
-                      class="ab-dropdownitem__item-active-icon iconoir-check"
-                    />
-                  </li>
-                  <li
-                    class="ab-dropdownitem__item ab-dropdownitem__item--no-options"
-                  >
-                    <a
-                      class="ab-dropdownitem__item-link"
-                    >
-                      <div
-                        class="ab-dropdownitem__item-name"
-                      >
-                        <!---->
-
-                        <span
-                          class="ab-dropdownitem__item-name-text"
-                          title="Second"
-                        >
-                          Second
-                        </span>
-                      </div>
-
-                      <!---->
-                    </a>
-
-                    <i
-                      class="ab-dropdownitem__item-active-icon iconoir-check"
-                    />
-                  </li>
-                  <li
-                    class="ab-dropdownitem__item ab-dropdownitem__item--no-options"
-                  >
-                    <a
-                      class="ab-dropdownitem__item-link"
-                    >
-                      <div
-                        class="ab-dropdownitem__item-name"
-                      >
-                        <!---->
-
-                        <span
-                          class="ab-dropdownitem__item-name-text"
-                          title="Third"
-                        >
-                          Third
-                        </span>
-                      </div>
-
-                      <!---->
-                    </a>
-
-                    <i
-                      class="ab-dropdownitem__item-active-icon iconoir-check"
-                    />
-                  </li>
-                  <li
-                    class="ab-dropdownitem__item ab-dropdownitem__item--no-options"
-                  >
-                    <a
-                      class="ab-dropdownitem__item-link"
-                    >
-                      <div
-                        class="ab-dropdownitem__item-name"
-                      >
-                        <!---->
-
-                        <span
-                          class="ab-dropdownitem__item-name-text"
-                          title="Fourth"
-                        >
-                          Fourth
-                        </span>
-                      </div>
-
-                      <!---->
-                    </a>
-
-                    <i
-                      class="ab-dropdownitem__item-active-icon iconoir-check"
-                    />
-                  </li>
-                  <li
-                    class="ab-dropdownitem__item ab-dropdownitem__item--no-options"
-                  >
-                    <a
-                      class="ab-dropdownitem__item-link"
-                    >
-                      <div
-                        class="ab-dropdownitem__item-name"
-                      >
-                        <!---->
-
-                        <span
-                          class="ab-dropdownitem__item-name-text"
-                          title="Fifth"
-                        >
-                          Fifth
-                        </span>
-                      </div>
-
-                      <!---->
-                    </a>
-
-                    <i
-                      class="ab-dropdownitem__item-active-icon iconoir-check"
-                    />
-                  </li>
-
-                  <div
-                    class="infinite-scroll__loading-wrapper"
-                  >
-                    <!---->
-                  </div>
-
-                  <!---->
-                </section>
-              </ul>
-
-              <!---->
-
-              <!---->
-            </div>
-          </div>
-
-          <!---->
-        </div>
-      </div>
-
-      <!---->
-
-    </div>
-
-    <!---->
-  </div>
 </div>
 `;

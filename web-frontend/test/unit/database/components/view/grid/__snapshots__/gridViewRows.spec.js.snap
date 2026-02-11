@@ -11,21 +11,9 @@ exports[`GridViewRows component > Default component 1`] = `
     class="grid-view__row"
   >
     <!--v-if-->
-    <!--
-      Somehow re-declaring all the events instead of using v-on="$listeners" speeds
-      everything up because the rows don't need to be updated everytime a new one is
-      rendered, which happens a lot when scrolling.
-      -->
     
-    
-    <!--
-    The :key property must be set here because it makes sure that the child components
-    are not re-rendered when functional component changes position in the DOM.
-  -->
     <div
-      add-keep-alive="function () { [native code] }"
       class="grid-view__column"
-      remove-keep-alive="function () { [native code] }"
       style="width: 200px;"
     >
       <div
@@ -44,16 +32,8 @@ exports[`GridViewRows component > Default component 1`] = `
         </div>
       </div>
     </div>
-    
-    
-    <!--
-    The :key property must be set here because it makes sure that the child components
-    are not re-rendered when functional component changes position in the DOM.
-  -->
     <div
-      add-keep-alive="function () { [native code] }"
       class="grid-view__column"
-      remove-keep-alive="function () { [native code] }"
       style="width: 200px;"
     >
       <div
@@ -71,7 +51,6 @@ exports[`GridViewRows component > Default component 1`] = `
       </div>
     </div>
     
-    
   </div>
   
   
@@ -79,21 +58,9 @@ exports[`GridViewRows component > Default component 1`] = `
     class="grid-view__row"
   >
     <!--v-if-->
-    <!--
-      Somehow re-declaring all the events instead of using v-on="$listeners" speeds
-      everything up because the rows don't need to be updated everytime a new one is
-      rendered, which happens a lot when scrolling.
-      -->
     
-    
-    <!--
-    The :key property must be set here because it makes sure that the child components
-    are not re-rendered when functional component changes position in the DOM.
-  -->
     <div
-      add-keep-alive="function () { [native code] }"
       class="grid-view__column"
-      remove-keep-alive="function () { [native code] }"
       style="width: 200px;"
     >
       <div
@@ -112,16 +79,8 @@ exports[`GridViewRows component > Default component 1`] = `
         </div>
       </div>
     </div>
-    
-    
-    <!--
-    The :key property must be set here because it makes sure that the child components
-    are not re-rendered when functional component changes position in the DOM.
-  -->
     <div
-      add-keep-alive="function () { [native code] }"
       class="grid-view__column"
-      remove-keep-alive="function () { [native code] }"
       style="width: 200px;"
     >
       <div
@@ -141,7 +100,6 @@ exports[`GridViewRows component > Default component 1`] = `
       </div>
     </div>
     
-    
   </div>
   
   
@@ -149,21 +107,9 @@ exports[`GridViewRows component > Default component 1`] = `
     class="grid-view__row"
   >
     <!--v-if-->
-    <!--
-      Somehow re-declaring all the events instead of using v-on="$listeners" speeds
-      everything up because the rows don't need to be updated everytime a new one is
-      rendered, which happens a lot when scrolling.
-      -->
     
-    
-    <!--
-    The :key property must be set here because it makes sure that the child components
-    are not re-rendered when functional component changes position in the DOM.
-  -->
     <div
-      add-keep-alive="function () { [native code] }"
       class="grid-view__column"
-      remove-keep-alive="function () { [native code] }"
       style="width: 200px;"
     >
       <div
@@ -180,16 +126,8 @@ exports[`GridViewRows component > Default component 1`] = `
         />
       </div>
     </div>
-    
-    
-    <!--
-    The :key property must be set here because it makes sure that the child components
-    are not re-rendered when functional component changes position in the DOM.
-  -->
     <div
-      add-keep-alive="function () { [native code] }"
       class="grid-view__column"
-      remove-keep-alive="function () { [native code] }"
       style="width: 200px;"
     >
       <div
@@ -208,7 +146,6 @@ exports[`GridViewRows component > Default component 1`] = `
         </div>
       </div>
     </div>
-    
     
   </div>
   
@@ -259,21 +196,9 @@ exports[`GridViewRows component > With row details 1`] = `
       </div>
     </div>
     
-    <!--
-      Somehow re-declaring all the events instead of using v-on="$listeners" speeds
-      everything up because the rows don't need to be updated everytime a new one is
-      rendered, which happens a lot when scrolling.
-      -->
     
-    
-    <!--
-    The :key property must be set here because it makes sure that the child components
-    are not re-rendered when functional component changes position in the DOM.
-  -->
     <div
-      add-keep-alive="function () { [native code] }"
       class="grid-view__column"
-      remove-keep-alive="function () { [native code] }"
       style="width: 200px;"
     >
       <div
@@ -292,16 +217,8 @@ exports[`GridViewRows component > With row details 1`] = `
         </div>
       </div>
     </div>
-    
-    
-    <!--
-    The :key property must be set here because it makes sure that the child components
-    are not re-rendered when functional component changes position in the DOM.
-  -->
     <div
-      add-keep-alive="function () { [native code] }"
       class="grid-view__column"
-      remove-keep-alive="function () { [native code] }"
       style="width: 200px;"
     >
       <div
@@ -318,7 +235,6 @@ exports[`GridViewRows component > With row details 1`] = `
         />
       </div>
     </div>
-    
     
   </div>
   
@@ -359,21 +275,9 @@ exports[`GridViewRows component > With row details 1`] = `
       </div>
     </div>
     
-    <!--
-      Somehow re-declaring all the events instead of using v-on="$listeners" speeds
-      everything up because the rows don't need to be updated everytime a new one is
-      rendered, which happens a lot when scrolling.
-      -->
     
-    
-    <!--
-    The :key property must be set here because it makes sure that the child components
-    are not re-rendered when functional component changes position in the DOM.
-  -->
     <div
-      add-keep-alive="function () { [native code] }"
       class="grid-view__column"
-      remove-keep-alive="function () { [native code] }"
       style="width: 200px;"
     >
       <div
@@ -392,16 +296,8 @@ exports[`GridViewRows component > With row details 1`] = `
         </div>
       </div>
     </div>
-    
-    
-    <!--
-    The :key property must be set here because it makes sure that the child components
-    are not re-rendered when functional component changes position in the DOM.
-  -->
     <div
-      add-keep-alive="function () { [native code] }"
       class="grid-view__column"
-      remove-keep-alive="function () { [native code] }"
       style="width: 200px;"
     >
       <div
@@ -420,7 +316,6 @@ exports[`GridViewRows component > With row details 1`] = `
         </div>
       </div>
     </div>
-    
     
   </div>
   
@@ -461,21 +356,9 @@ exports[`GridViewRows component > With row details 1`] = `
       </div>
     </div>
     
-    <!--
-      Somehow re-declaring all the events instead of using v-on="$listeners" speeds
-      everything up because the rows don't need to be updated everytime a new one is
-      rendered, which happens a lot when scrolling.
-      -->
     
-    
-    <!--
-    The :key property must be set here because it makes sure that the child components
-    are not re-rendered when functional component changes position in the DOM.
-  -->
     <div
-      add-keep-alive="function () { [native code] }"
       class="grid-view__column"
-      remove-keep-alive="function () { [native code] }"
       style="width: 200px;"
     >
       <div
@@ -492,16 +375,8 @@ exports[`GridViewRows component > With row details 1`] = `
         />
       </div>
     </div>
-    
-    
-    <!--
-    The :key property must be set here because it makes sure that the child components
-    are not re-rendered when functional component changes position in the DOM.
-  -->
     <div
-      add-keep-alive="function () { [native code] }"
       class="grid-view__column"
-      remove-keep-alive="function () { [native code] }"
       style="width: 200px;"
     >
       <div
@@ -520,7 +395,6 @@ exports[`GridViewRows component > With row details 1`] = `
         </div>
       </div>
     </div>
-    
     
   </div>
   

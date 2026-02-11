@@ -1,5 +1,5 @@
 <template>
-  <Modal @show="onShow" @hidden="hideError">
+  <Modal ref="modal" @show="onShow" @hidden="hideError">
     <Error v-if="error.visible" :error="error"></Error>
     <Tabs
       v-else
@@ -20,7 +20,9 @@
           scope-type="application"
           @invite-members="inviteDatabaseMembers"
           @invite-teams="inviteDatabaseTeams"
-          @role-updated="updateRole(databaseRoleAssignments, ...arguments)"
+          @role-updated="
+            (ra, role) => updateRole(databaseRoleAssignments, ra, role)
+          "
         />
       </Tab>
       <Tab
@@ -36,7 +38,9 @@
           scope-type="database_table"
           @invite-members="inviteTableMembers"
           @invite-teams="inviteTableTeams"
-          @role-updated="updateRole(tableRoleAssignments, ...arguments)"
+          @role-updated="
+            (ra, role) => updateRole(tableRoleAssignments, ra, role)
+          "
         />
       </Tab>
       <Tab
@@ -52,7 +56,9 @@
           scope-type="database_view"
           @invite-members="inviteViewMembers"
           @invite-teams="inviteViewTeams"
-          @role-updated="updateRole(viewRoleAssignments, ...arguments)"
+          @role-updated="
+            (ra, role) => updateRole(viewRoleAssignments, ra, role)
+          "
         />
       </Tab>
     </Tabs>
@@ -313,8 +319,10 @@ export default {
       }
 
       try {
+        const subjectId =
+          roleAssignment.subject?.id ?? roleAssignment.subject_id
         await RoleAssignmentsService(this.$client).assignRole(
-          roleAssignment.subject.id,
+          subjectId,
           roleAssignment.subject_type,
           this.workspace.id,
           roleAssignment.scope_id,

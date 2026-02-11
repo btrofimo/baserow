@@ -7,6 +7,7 @@ import {
   encodeDefaultViewIdPerTable,
 } from '@baserow/modules/database/utils/view'
 import gallery from '~/modules/database/services/view/gallery'
+import { NuxtPage } from '#components'
 
 // Mock out debounce so we don't have to wait or simulate waiting for the various
 // debounces in the search functionality.
@@ -23,17 +24,29 @@ describe('View Tests', () => {
 
   afterEach(async () => await testApp.afterEach())
 
+  const mountRoute = (route) => {
+    // Let's mount a NuxtPage component for the route.
+    // It allow the router to work properly
+    const App = defineComponent({
+      components: { NuxtPage },
+      template: '<NuxtPage />',
+    })
+
+    return testApp.mount(App, {
+      route,
+    })
+  }
+
   test('Default view is being set correctly initially', async () => {
     const { application, table, views } =
       await givenATableInTheServerWithMultipleViews()
 
     const gridView = views[0]
     const galleryView = views[1]
-    // The first view is the Grid view, the Default view is the Gallery view which
-    // is going to be rendered initially:
-    const tableComponent = await testApp.mount(Table, {
-      route: `/database/${application.id}/table/${table.id}/${galleryView.id}?token=fake`,
-    })
+
+    const tableComponent = await mountRoute(
+      `/database/${application.id}/table/${table.id}/${galleryView.id}?token=fake`
+    )
 
     const tableId = gridView.table_id
 
@@ -52,7 +65,7 @@ describe('View Tests', () => {
     expect(tableComponent.find('div.grid-view').exists()).toBe(false)
   })
 
-  test.skip('Default view is being set correctly after changing views', async () => {
+  test('Default view is being set correctly after changing views', async () => {
     const { application, table, views } =
       await givenATableInTheServerWithMultipleViews()
 
@@ -61,9 +74,10 @@ describe('View Tests', () => {
 
     // The first view is the Grid view, the Default view is the Gallery view which
     // is going to be rendered initially:
-    const tableComponent = await testApp.mount(Table, {
-      route: `/database/${application.id}/table/${table.id}/${galleryView.id}?token=fake`,
-    })
+    const tableComponent = await mountRoute(
+      `/database/${application.id}/table/${table.id}/${galleryView.id}?token=fake`
+    )
+
     const tableId = gridView.table_id
 
     // Check if Vuex store is updated correctly (first view):
@@ -98,7 +112,7 @@ describe('View Tests', () => {
     expect(testApp.store.getters['view/defaultId']).toBe(gridView.id)
   })
 
-  test.skip('Default view is being set correctly after switching tables', async () => {
+  test('Default view is being set correctly after switching tables', async () => {
     const { application, tables, views } =
       await givenATableInTheServerWithMultipleTables()
 
@@ -109,9 +123,9 @@ describe('View Tests', () => {
 
     // The first (and default) view is the Grid view, which is going to be rendered
     // initially for the firstTable:
-    const firstTableComponent = await testApp.mount(Table, {
-      route: `/database/${application.id}/table/${firstTable.id}/?token=fake`,
-    })
+    const firstTableComponent = await mountRoute(
+      `/database/${application.id}/table/${firstTable.id}/?token=fake`
+    )
 
     // Check if Vuex store is updated correctly (first view):
     expect(testApp.store.getters['view/first'].id).toBe(firstTableGridView.id)
@@ -134,9 +148,9 @@ describe('View Tests', () => {
 
     // The first (and default) view is the Grid view, which is going to be rendered
     // initially for the secondTable:
-    const secondTableComponent = await testApp.mount(Table, {
-      route: `/database/${application.id}/table/${secondTable.id}/?token=fake`,
-    })
+    const secondTableComponent = await mountRoute(
+      `/database/${application.id}/table/${secondTable.id}/?token=fake`
+    )
 
     // Check if Vuex store is updated correctly (first view):
     expect(testApp.store.getters['view/first'].id).toBe(secondTableGridView.id)
@@ -157,9 +171,9 @@ describe('View Tests', () => {
     await secondTableComponent.unmount()
     // Let's switch back to the first table in the database and see if first table's
     // default view is appended to the *end* of remembered views array:
-    await testApp.mount(Table, {
-      route: `/database/${application.id}/table/${firstTable.id}/?token=fake`,
-    })
+    await mountRoute(
+      `/database/${application.id}/table/${firstTable.id}/?token=fake`
+    )
 
     // Check if Vuex store is updated correctly (first view):
     expect(testApp.store.getters['view/first'].id).toBe(firstTableGridView.id)
@@ -178,7 +192,7 @@ describe('View Tests', () => {
     expect(testApp.store.getters['view/defaultId']).toBe(firstTableGridView.id)
   })
 
-  test.skip('Default view is being set correctly only from cookie', async () => {
+  test('Default view is being set correctly only from cookie', async () => {
     // set the cookie, render table without view id passed in, this should render
     // the default (Gallery) view
     const { application, table, views } =
@@ -206,9 +220,9 @@ describe('View Tests', () => {
     // The first view is the Grid view, the Default view is the Gallery view,
     // we're not rendering any view initially and Default view (Gallery view)
     // should be picked up from the cookie
-    const tableComponent = await testApp.mount(Table, {
-      route: `/database/${application.id}/table/${table.id}/?token=fake`,
-    })
+    const tableComponent = await mountRoute(
+      `/database/${application.id}/table/${table.id}/?token=fake`
+    )
 
     // Check if Vuex store is updated correctly (first view):
     expect(testApp.store.getters['view/first'].id).toBe(gridView.id)
@@ -224,7 +238,7 @@ describe('View Tests', () => {
     expect(tableComponent.find('div.grid-view').exists()).toBe(false)
   })
 
-  test.skip('Changing default view updates cookies array correctly', async () => {
+  test('Changing default view updates cookies array correctly', async () => {
     const { application, table, views } =
       await givenATableInTheServerWithMultipleViews()
 
@@ -251,9 +265,9 @@ describe('View Tests', () => {
     const originalDataLength = randomData.length
 
     // Mount the component, which should update the cookies
-    await testApp.mount(Table, {
-      route: `/database/${application.id}/table/${table.id}/${gridView.id}?token=fake`,
-    })
+    await mountRoute(
+      `/database/${application.id}/table/${table.id}/${gridView.id}?token=fake`
+    )
 
     // The Default view is the Grid view and it should be set (appended) in the cookie
     await nextTick()
@@ -275,35 +289,21 @@ describe('View Tests', () => {
     expect(updatedCookieValue.length).toBeLessThan(originalDataLength)
   })
 
-  // TODO MIG skipped
-  test.skip('Unknown error during views loading is displayed correctly - no view toolbar', async () => {
+  test('Unknown error during views loading is displayed correctly - no view toolbar', async () => {
     const viewsError = { statusCode: 500, data: 'some backend error' }
-    const errorHandler = vi.fn()
 
     // no list of views
     const { application, table } = await givenATableWithError({
       viewsError,
     })
-    const tableComponent = await testApp.mount(Table, {
-      route: `/database/${application.id}/table/${table.id}/123?token=fake`,
-      global: {
-        config: {
-          errorHandler,
-        },
-      },
-    })
 
-    expect(errorHandler).toHaveBeenCalled()
-    expect(errorHandler.mock.calls[0][0].message).toContain(
-      'Request failed with status code 500'
-    )
-    // no table header (view selection, filters, sorting, grouping...)
-    expect(tableComponent.find('header .header__filter-link').exists()).toBe(
-      false
-    )
+    await expect(
+      testApp.mount(Table, {
+        route: `/database/${application.id}/table/${table.id}/123?token=fake`,
+      })
+    ).rejects.toThrow('Request failed with status code 500')
   })
 
-  // TODO MIG skipped
   test.skip('API error during views loading is displayed correctly', async () => {
     const viewsError = {
       statusCode: 400,
@@ -311,31 +311,19 @@ describe('View Tests', () => {
         message: "The view filter type INVALID doesn't exist.",
       },
     }
-    const errorHandler = vi.fn()
 
     // no list of views
     const { application, table } = await givenATableWithError({
       viewsError,
     })
-    const tableComponent = await testApp.mount(Table, {
-      route: `/database/${application.id}/table/${table.id}/123?token=fake`,
-      global: {
-        config: {
-          errorHandler,
-        },
-      },
-    })
 
-    expect(errorHandler).toHaveBeenCalled()
-    expect(errorHandler.mock.calls[0][0].message).toContain(
-      'Request failed with status code 400'
-    )
-
-    expect(tableComponent.find('header .header__filter-link').exists()).toBe(
-      false
-    )
+    await expect(
+      testApp.mount(Table, {
+        route: `/database/${application.id}/table/${table.id}/123?token=fake`,
+      })
+    ).rejects.toThrow('Request failed with status code 400')
   })
-  // TODO MIG skipped
+
   test.skip('API error during view rows loading', async () => {
     const rowsError = { statusCode: 500, data: { message: 'Unknown error' } }
     const errorHandler = vi.fn()
@@ -522,6 +510,7 @@ describe('View Tests', () => {
 
   async function givenATableWithError({ viewsError, fieldsError, rowsError }) {
     mockServer.fakeSettings()
+    mockServer.fakeJobs()
     mockServer.fakeAuthentication()
 
     const table = mockServer.createTable()

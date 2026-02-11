@@ -67,14 +67,6 @@ import {
 import { SingleSelectFormattingType } from '@baserow_premium/dashboard/chartFieldFormatting'
 import { GenerateAIValuesJobType } from '@baserow_premium/jobTypes'
 import { GenerateAIValuesContextItemType } from '@baserow_premium/fieldContextItemTypes'
-import en from '@baserow_premium/locales/en.json'
-import fr from '@baserow_premium/locales/fr.json'
-import nl from '@baserow_premium/locales/nl.json'
-import de from '@baserow_premium/locales/de.json'
-import es from '@baserow_premium/locales/es.json'
-import it from '@baserow_premium/locales/it.json'
-import pl from '@baserow_premium/locales/pl.json'
-import ko from '@baserow_premium/locales/ko.json'
 import { PremiumLicenseType } from '@baserow_premium/licenseTypes'
 import { PersonalViewOwnershipType } from '@baserow_premium/viewOwnershipTypes'
 import { ViewOwnershipPermissionManagerType } from '@baserow_premium/permissionManagerTypes'
@@ -144,14 +136,14 @@ export default defineNuxtPlugin({
       i18n.mergeLocaleMessage('ko', ko)
     }*/
 
-    $store.registerModule('row_comments', rowCommentsStore)
-    $store.registerModule('page/view/kanban', kanbanStore)
-    $store.registerModule('page/view/calendar', calendarStore)
-    $store.registerModule('page/view/timeline', timelineStore)
-    $store.registerModule('template/view/kanban', kanbanStore)
-    $store.registerModule('template/view/calendar', calendarStore)
-    $store.registerModule('template/view/timeline', timelineStore)
-    $store.registerModule('impersonating', impersonatingStore)
+    $store.registerModuleNuxtSafe('row_comments', rowCommentsStore)
+    $store.registerModuleNuxtSafe('page/view/kanban', kanbanStore)
+    $store.registerModuleNuxtSafe('page/view/calendar', calendarStore)
+    $store.registerModuleNuxtSafe('page/view/timeline', timelineStore)
+    $store.registerModuleNuxtSafe('template/view/kanban', kanbanStore)
+    $store.registerModuleNuxtSafe('template/view/calendar', calendarStore)
+    $store.registerModuleNuxtSafe('template/view/timeline', timelineStore)
+    $store.registerModuleNuxtSafe('impersonating', impersonatingStore)
 
     $registry.registerNamespace('aiFieldOutputType')
     $registry.registerNamespace('paidFeature')

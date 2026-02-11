@@ -244,6 +244,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     procps \
     tmux \
     vim \
+    lsof \
     sudo
 
 ENV DOCKER_USER=baserow_docker_user \
@@ -303,9 +304,7 @@ RUN echo "set -g default-command \"\${SHELL}\"" > /baserow/.tmux.conf && \
     'echo "  j           - See available commands"' \
     > /baserow/.bashrc
 
-COPY --chown=$UID:$GID LICENSE /baserow/LICENSE
 COPY --chown=$UID:$GID backend/docker/docker-entrypoint.sh /baserow/backend/docker/docker-entrypoint.sh
-
 RUN dos2unix /baserow/backend/docker/docker-entrypoint.sh \
     && chmod a+x /baserow/backend/docker/docker-entrypoint.sh
 

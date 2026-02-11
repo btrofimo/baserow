@@ -24,6 +24,7 @@ export class BaserowPage {
   }
 
   async goto(params = {}) {
+    await this.page.waitForTimeout(100); // Small delay before navigation to help with Firefox timing issues
     await this._goto(this.getFullUrl(), {
       waitUntil: "hydration",
       ...params,
@@ -37,7 +38,7 @@ export class BaserowPage {
   async changeDropdown(
     currentValue: string,
     newValue: string,
-    location?: Locator
+    location?: Locator,
   ) {
     await (location ? location : this.page)
       .locator(".dropdown__selected-text")

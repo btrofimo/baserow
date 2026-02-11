@@ -29,7 +29,6 @@
         />
       </FormGroup>
     </FormRow>
-
     <component
       :is="userSourceType.formComponent"
       v-if="integration"
@@ -104,11 +103,11 @@
 import { useVuelidate } from '@vuelidate/core'
 import form from '@baserow/modules/core/mixins/form'
 import IntegrationDropdown from '@baserow/modules/core/components/integrations/IntegrationDropdown'
-import AuthProviderWithModal from '@baserow/modules/builder/components/userSource/AuthProviderWithModal'
 import { required, maxLength, helpers } from '@vuelidate/validators'
+import _ from 'lodash'
 
 export default {
-  components: { IntegrationDropdown, AuthProviderWithModal },
+  components: { IntegrationDropdown },
   mixins: [form],
   props: {
     builder: {
@@ -179,11 +178,11 @@ export default {
     getChildFormsValues() {
       return Object.assign(
         {},
-        ...this.getChildForms((child) => 'getChildFormsValues' in child).map(
-          (child) => {
-            return child.getFormValues()
-          }
-        )
+        ...this.getChildForms(
+          (child) => 'getChildFormsValues' in child && !child.excludedForm
+        ).map((child) => {
+          return child.getFormValues()
+        })
       )
     },
     hasAtLeastOneOfThisType(appAuthProviderType) {

@@ -46,12 +46,19 @@ exports[`ChoiceElement > as default 1`] = `
               <!--v-if-->
               <ul
                 class="select__items"
+                style="display: none;"
                 tabindex="-1"
               >
                 
                 
               </ul>
-              <!--v-if-->
+              <div
+                class="select__items--empty"
+              >
+                
+                dropdown.empty
+                
+              </div>
               <!--v-if-->
             </div>
           </div>
@@ -97,7 +104,6 @@ exports[`ChoiceElement > as manual checkboxes 1`] = `
           
           <div
             class="ab-checkbox"
-            value="false"
           >
             <input
               aria-disabled="false"
@@ -114,7 +120,6 @@ exports[`ChoiceElement > as manual checkboxes 1`] = `
           </div>
           <div
             class="ab-checkbox"
-            value="false"
           >
             <input
               aria-disabled="false"

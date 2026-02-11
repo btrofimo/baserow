@@ -53,20 +53,23 @@ export default defineNuxtPlugin({
   async setup(nuxtApp) {
     const { $store } = nuxtApp
     if (!$store.hasModule('table')) {
-      $store.registerModule('table', tableStore)
-      $store.registerModule('view', viewStore)
-      $store.registerModule('field', fieldStore)
-      $store.registerModule('rowModal', rowModal)
-      $store.registerModule('rowModalNavigation', rowModalNavigationStore)
-      $store.registerModule('rowHistory', rowHistoryStore)
-      $store.registerModule('fieldRules', fieldRulesStore)
-      $store.registerModule('page/view/grid', gridStore)
-      $store.registerModule('page/view/gallery', galleryStore)
-      $store.registerModule('page/view/form', formStore)
-      $store.registerModule('page/view/public', publicStore)
-      $store.registerModule('template/view/grid', gridStore)
-      $store.registerModule('template/view/gallery', galleryStore)
-      $store.registerModule('template/view/form', formStore)
+      $store.registerModuleNuxtSafe('table', tableStore)
+      $store.registerModuleNuxtSafe('view', viewStore)
+      $store.registerModuleNuxtSafe('field', fieldStore)
+      $store.registerModuleNuxtSafe('rowModal', rowModal)
+      $store.registerModuleNuxtSafe(
+        'rowModalNavigation',
+        rowModalNavigationStore
+      )
+      $store.registerModuleNuxtSafe('rowHistory', rowHistoryStore)
+      $store.registerModuleNuxtSafe('fieldRules', fieldRulesStore)
+      $store.registerModuleNuxtSafe('page/view/grid', gridStore)
+      $store.registerModuleNuxtSafe('page/view/gallery', galleryStore)
+      $store.registerModuleNuxtSafe('page/view/form', formStore)
+      $store.registerModuleNuxtSafe('page/view/public', publicStore)
+      $store.registerModuleNuxtSafe('template/view/grid', gridStore)
+      $store.registerModuleNuxtSafe('template/view/gallery', galleryStore)
+      $store.registerModuleNuxtSafe('template/view/form', formStore)
     }
   },
 })

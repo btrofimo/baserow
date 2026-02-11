@@ -182,7 +182,6 @@ export default {
       })
       Object.assign(row, defaults)
       this.row = row
-      //Vue.set(this, 'row', row)
       return modal.methods.show.call(this, ...args)
     },
     update(event) {

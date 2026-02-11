@@ -145,7 +145,6 @@ describe('RecordSelectorElement', () => {
     expect(mockServer.mock.history.post.length).toBe(2)
   })
 
-  // TODO MIG skipped
   test.skip('resolves suffix formulas', async () => {
     const page = {
       id: 1,

@@ -1,7 +1,6 @@
 <!-- eslint-disable vue/no-v-html vue/no-v-text-v-html-on-component -->
 <template>
-  <component
-    :is="tag"
+  <div
     :key="contentHash"
     class="markdown"
     @click="$emit('click', $event)"
@@ -10,18 +9,16 @@
 </template>
 
 <script setup>
+import { ref, watch } from 'vue'
 import { generateHash } from '@baserow/modules/core/utils/hashing'
-const emit = defineEmits(['click'])
+import MarkdownIt from 'markdown-it'
+
+defineEmits(['click'])
 
 const props = defineProps({
   content: {
     required: true,
     type: String,
-  },
-  tag: {
-    required: false,
-    type: String,
-    default: 'div',
   },
   rules: {
     required: false,
@@ -31,37 +28,23 @@ const props = defineProps({
 })
 
 // Keep a single markdown-it instance per component instance.
-let md
-let baseRules
+const Markdown = MarkdownIt?.default || MarkdownIt
+const md = new Markdown()
+const baseRules = { ...md.renderer.rules }
 
-const initMarkdown = async () => {
-  if (md) return md
-
-  const Markdown = (await import('markdown-it')).default
-  md = new Markdown()
-  baseRules = { ...md.renderer.rules }
-
-  return md
-}
-
-// The hash makes sure the data are updated if the content changes.
+// The hash makes sure the data is updated if the content changes.
 const contentHash = computed(() => generateHash(props.content))
 
-const markdownAsync = await useAsyncData(
-  () => `markdown-it:${contentHash.value}`,
-  async () => {
-    const instance = await initMarkdown()
+// Use ref + watcher to avoid side effects in computed
+const htmlContent = ref('')
 
-    // Always start from the base renderer rules then apply overrides.
-    instance.renderer.rules = { ...baseRules, ...props.rules }
+const renderMarkdown = () => {
+  md.renderer.rules = { ...baseRules, ...props.rules }
+  htmlContent.value = md.render(props.content)
+}
 
-    return instance.render(props.content)
-  },
-  {
-    watch: [() => props.content, () => props.rules],
-    default: () => '',
-  }
-)
-
-const htmlContent = computed(() => markdownAsync.data.value || '')
+watch(() => [props.content, props.rules], renderMarkdown, {
+  deep: true,
+  immediate: true,
+})
 </script>
