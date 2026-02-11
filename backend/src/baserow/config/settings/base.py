@@ -343,6 +343,7 @@ LANGUAGES = [
     ("it", "Italian"),
     ("pl", "Polish"),
     ("ko", "Korean"),
+    ("uk", "Ukrainian"),
 ]
 
 TIME_ZONE = "UTC"
