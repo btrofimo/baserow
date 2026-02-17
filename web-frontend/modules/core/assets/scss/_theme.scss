@@ -107,6 +107,12 @@
   --scrollbar-thumb: rgba(255, 255, 255, 0.1);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.2);
   --scrollbar-thumb-active: rgba(255, 255, 255, 0.3);
+
+  // Accessible text colors (WCAG AA 4.5:1 on dark surfaces)
+  --color-primary-text: #ec6b2d;
+  --color-success-text: #3dbb78;
+  --color-error-text: #ef7068;
+  --color-warning-text: #d4a05f;
 }
 
 [data-theme='light'] {
@@ -202,6 +208,12 @@
   --scrollbar-thumb: rgba(0, 0, 0, 0.1);
   --scrollbar-thumb-hover: rgba(0, 0, 0, 0.2);
   --scrollbar-thumb-active: rgba(0, 0, 0, 0.3);
+
+  // Accessible text colors (WCAG AA 4.5:1 on light surfaces)
+  --color-primary-text: #c54318;
+  --color-success-text: #067647;
+  --color-error-text: #d92d20;
+  --color-warning-text: #806422;
 }
 
 // System preference detection - only applies when no explicit theme is set
@@ -285,5 +297,9 @@
     --scrollbar-thumb: rgba(0, 0, 0, 0.1);
     --scrollbar-thumb-hover: rgba(0, 0, 0, 0.2);
     --scrollbar-thumb-active: rgba(0, 0, 0, 0.3);
+    --color-primary-text: #c54318;
+    --color-success-text: #067647;
+    --color-error-text: #d92d20;
+    --color-warning-text: #806422;
   }
 }
