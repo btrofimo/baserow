@@ -51,10 +51,10 @@
 }
 
 .admin-dashboard__numbers-percentage-value {
-  color: $color-success-500;
+  color: $color-success-text;
   margin-right: 4px;
 
   &.admin-dashboard__numbers-percentage-value--negative {
-    color: $color-error-500;
+    color: $color-error-text;
   }
 }

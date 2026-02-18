@@ -153,6 +153,6 @@
   @include rounded($rounded);
 
   &--false {
-    color: $color-error-600;
+    color: $color-error-text;
   }
 }

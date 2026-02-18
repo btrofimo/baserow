@@ -80,7 +80,7 @@
   }
 
   .tabs__item--active &:hover {
-    color: $color-primary-500;
+    color: $color-primary-text;
   }
 
   .tabs__item:not(.tabs__item--disabled) &:hover {

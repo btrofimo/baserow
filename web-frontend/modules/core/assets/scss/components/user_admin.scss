@@ -28,11 +28,11 @@
   font-size: 18px;
 
   &.user-admin-active__icon--activated {
-    color: $color-success-500;
+    color: $color-success-text;
   }
 
   &.user-admin-active__icon--deactivated {
-    color: $color-error-500;
+    color: $color-error-text;
   }
 }
 
@@ -46,6 +46,6 @@
 }
 
 .user-admin-edit__delete {
-  color: $color-error-500;
+  color: $color-error-text;
   font-size: 14px;
 }

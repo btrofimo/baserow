@@ -88,11 +88,11 @@
   margin-left: 10px;
 
   &.webhook__head-call-state--ok {
-    color: $color-success-500;
+    color: $color-success-text;
   }
 
   &.webhook__head-call-state--error {
-    color: $color-error-500;
+    color: $color-error-text;
   }
 }
 
@@ -261,11 +261,11 @@
   margin-right: 10px;
 
   &.webhook__head-call-state--ok {
-    color: $color-success-500;
+    color: $color-success-text;
   }
 
   &.webhook__head-call-state--error {
-    color: $color-error-500;
+    color: $color-error-text;
   }
 }
 
@@ -309,11 +309,11 @@
   text-align: right;
 
   &.webhook__test-state--ok {
-    color: $color-success-500;
+    color: $color-success-text;
   }
 
   &.webhook__test-state--error {
-    color: $color-error-500;
+    color: $color-error-text;
   }
 }
 

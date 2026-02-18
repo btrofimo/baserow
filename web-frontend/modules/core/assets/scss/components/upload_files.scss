@@ -27,7 +27,7 @@
 
   &:hover,
   &.upload-files__dropzone--dragging {
-    color: $color-primary-500;
+    color: $color-primary-text;
     border-color: $color-primary-500;
   }
 
@@ -150,7 +150,7 @@
 }
 
 .upload-files__error {
-  color: $color-error-500;
+  color: $color-error-text;
 }
 
 .upload-files__state {
@@ -159,15 +159,15 @@
   text-align: right;
   padding-top: 6px;
   font-size: 13px;
-  color: $color-success-500;
+  color: $color-success-text;
 }
 
 .upload-files__state-waiting {
-  color: $color-success-500;
+  color: $color-success-text;
 }
 
 .upload-files__state-failed {
-  color: $color-error-500;
+  color: $color-error-text;
 }
 
 .upload-files__state-loading {

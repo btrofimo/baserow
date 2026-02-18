@@ -131,10 +131,10 @@
 
     &:active:not(.disabled) {
       background: $color-error-200;
-      color: $color-error-500;
+      color: $color-error-text;
 
       .context__menu-item-icon {
-        color: $color-error-500;
+        color: $color-error-text;
       }
     }
   }
@@ -222,7 +222,7 @@
   right: 8px;
   font-size: 14px;
   background-color: $color-primary-200;
-  color: $color-primary-500;
+  color: $color-primary-text;
   padding: 2px;
   width: 17px;
   height: 17px;

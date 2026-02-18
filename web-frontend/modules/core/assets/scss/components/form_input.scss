@@ -43,7 +43,7 @@
   &:focus:not(.form-input--no-border),
   &:focus-within:not(.form-input--no-border) {
     &:not(.form-input--disabled):not(.form-input--error) {
-      border-color: $color-primary-500;
+      border-color: $color-primary-text;
       box-shadow: 0 0 0 3px themed-alpha($color-primary-500, 0.17);
     }
   }
@@ -172,7 +172,7 @@
   }
 
   .form-input--focus & {
-    color: $color-primary-500;
+    color: $color-primary-text;
   }
 
   .form-input--loading &.form-input__icon-right {
@@ -191,7 +191,7 @@
       .form-input--error
     ):not(.form-input--no-border)
     & {
-    color: $color-primary-500;
+    color: $color-primary-text;
   }
 }
 

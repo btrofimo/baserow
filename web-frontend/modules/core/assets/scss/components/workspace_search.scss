@@ -36,7 +36,7 @@
   @include absolute(calc(50% - 10px), auto, auto, 16px);
 
   &--active {
-    color: $color-primary-500;
+    color: $color-primary-text;
   }
 }
 

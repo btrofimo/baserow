@@ -255,7 +255,7 @@
 }
 
 .form-view__file-error {
-  color: $color-error-500;
+  color: $color-error-text;
 
   .form-view__file--error & {
     display: block;
@@ -269,7 +269,7 @@
   justify-content: center;
   align-items: center;
   background-color: rgba(0, 0, 0, 0.1);
-  color: $color-error-500;
+  color: $color-error-text;
   font-size: 14px;
   font-weight: 600;
 
@@ -503,7 +503,7 @@
 }
 
 .form-view__field-required {
-  color: $color-error-600;
+  color: $color-error-text;
 }
 
 .form-view__field-description {

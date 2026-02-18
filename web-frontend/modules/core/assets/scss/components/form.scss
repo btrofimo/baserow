@@ -38,7 +38,7 @@
   }
 
   .form-input__icon {
-    color: $color-error-600;
+    color: $color-error-text;
   }
 }
 
@@ -138,7 +138,7 @@
 
 .warning {
   margin-top: 6px;
-  color: $color-warning-600;
+  color: $color-warning-text;
 }
 
 .actions {
@@ -224,7 +224,7 @@
 
 .control__messages--warning {
   margin: 0;
-  color: $color-warning-600;
+  color: $color-warning-text;
 
   @include flex-align-items(3px);
 }

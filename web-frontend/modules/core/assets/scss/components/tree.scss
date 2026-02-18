@@ -131,7 +131,7 @@
   display: inline-block;
   position: absolute;
   right: 35px;
-  color: $color-primary-500;
+  color: $color-primary-text;
 }
 
 .tree__icon {
@@ -265,7 +265,7 @@
 
   &:hover {
     text-decoration: none;
-    color: $color-primary-500;
+    color: $color-primary-text;
   }
 }
 
@@ -274,7 +274,7 @@
   color: $color-neutral-600;
 
   .tree__sub-add:hover & {
-    color: $color-primary-500;
+    color: $color-primary-text;
   }
 }
 
@@ -349,7 +349,7 @@
     text-decoration: none;
     background-color: themed-alpha($color-primary-500, 0.12);
     outline: solid 2px themed-alpha($color-primary-500, 0.12);
-    color: $color-primary-500;
+    color: $color-primary-text;
   }
 }
 

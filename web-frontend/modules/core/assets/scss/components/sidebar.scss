@@ -140,7 +140,7 @@
   color: $color-neutral-500;
 
   .sidebar__new:hover & {
-    color: $color-primary-500;
+    color: $color-primary-text;
   }
 }
 
@@ -233,7 +233,7 @@
 
 .sidebar__workspace-active-icon {
   text-align: center;
-  color: $color-primary-500;
+  color: $color-primary-text;
   position: absolute;
   top: 50%;
   right: 5px;

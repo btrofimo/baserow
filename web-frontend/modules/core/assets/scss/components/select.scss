@@ -12,7 +12,7 @@
   font-size: 16px;
 
   .select__search:focus-within & {
-    color: $color-primary-500;
+    color: $color-primary-text;
   }
 }
 
@@ -98,7 +98,7 @@
 
 .select__item-active-icon {
   text-align: center;
-  color: $color-primary-500;
+  color: $color-primary-text;
   position: absolute;
   top: 8px;
   right: 5px;

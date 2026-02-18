@@ -42,11 +42,11 @@
   font-size: 18px;
 
   .chips--active:not(.chips--disabled) & {
-    color: $color-primary-500;
+    color: $color-primary-text;
   }
 
   .chips:hover:not(.chips--disabled) & {
-    color: $color-primary-500;
+    color: $color-primary-text;
   }
 }
 

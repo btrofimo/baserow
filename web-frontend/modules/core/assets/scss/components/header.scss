@@ -64,7 +64,7 @@
     color: $color-neutral-800;
 
     &:hover {
-      color: $color-primary-500;
+      color: $color-primary-text;
     }
   }
 }
@@ -127,7 +127,7 @@
   }
 
   &.active {
-    color: $color-primary-500;
+    color: $color-primary-text;
   }
 
   &.active--success {
@@ -194,7 +194,7 @@
   }
 
   &.header-filter-icon--view {
-    color: $color-primary-500;
+    color: $color-primary-text;
     font-size: 18px;
   }
 
@@ -203,7 +203,7 @@
   }
 
   .header__filter-link.active & {
-    color: $color-primary-500;
+    color: $color-primary-text;
   }
 }
 
