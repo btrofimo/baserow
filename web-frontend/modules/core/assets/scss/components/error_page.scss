@@ -1,0 +1,92 @@
+.error-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 96px 24px;
+  background: $color-neutral-900;
+  color: $color-neutral-100;
+  text-align: center;
+}
+
+.error-page__content {
+  max-width: 768px;
+  width: 100%;
+}
+
+.error-page__subheading {
+  font-size: 14px;
+  font-weight: 600;
+  color: $color-neutral-500;
+  margin: 0 0 12px;
+}
+
+.error-page__title {
+  font-size: 60px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 72px;
+  margin: 0 0 24px;
+  color: $color-neutral-100;
+
+  @media screen and (max-width: 768px) {
+    font-size: 36px;
+    line-height: 44px;
+  }
+}
+
+.error-page__body {
+  font-size: 20px;
+  line-height: 30px;
+  color: $color-neutral-400;
+  margin: 0 0 48px;
+
+  @media screen and (max-width: 768px) {
+    font-size: 16px;
+    line-height: 24px;
+  }
+}
+
+.error-page__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.error-page__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 12px;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: filter 0.15s ease;
+
+  &:hover {
+    text-decoration: none;
+    filter: brightness(1.08);
+  }
+}
+
+.error-page__btn--primary {
+  background: $color-primary-500;
+  color: $white;
+  box-shadow:
+    inset 0px -2px 0px 0px rgba(12, 14, 18, 0.05),
+    inset 0px 0px 0px 1px rgba(12, 14, 18, 0.18);
+}
+
+.error-page__btn--secondary {
+  background: transparent;
+  color: $color-neutral-100;
+  border: 1px solid $color-neutral-600;
+  box-shadow:
+    inset 0px -2px 0px 0px rgba(12, 14, 18, 0.05),
+    inset 0px 0px 0px 1px rgba(12, 14, 18, 0.18);
+}

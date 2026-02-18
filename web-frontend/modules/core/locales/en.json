@@ -506,12 +506,16 @@
     "action": "Reload"
   },
   "errorLayout": {
-    "notFound": "The page you are looking for has not been found. This might be because URL is incorrect or that you don’t have permission to view this page.",
+    "errorLabel": "error",
+    "notFound": "The page you are looking for has not been found. This might be because URL is incorrect or that you don't have permission to view this page.",
+    "notFoundTitle": "We can't find that page",
     "error": "Something went wrong while loading the page. Our developers have been notified of the issue. Please try to refresh or return to the dashboard.",
     "backDashboard": "Back to dashboard",
     "backLogin": "Back to login",
     "wrong": "Something went wrong",
-    "refresh": "Refresh page"
+    "refresh": "Refresh page",
+    "goBack": "Go back",
+    "takeHome": "Take me home"
   },
   "dashboard": {
     "title": "Dashboard",

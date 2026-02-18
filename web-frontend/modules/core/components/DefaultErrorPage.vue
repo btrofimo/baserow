@@ -1,46 +1,23 @@
 <template>
-  <div v-if="!redirecting" class="placeholder">
-    <div class="placeholder__logo">
-      <nuxt-link :to="{ name: 'index' }">
-        <Logo class="placeholder__logo-image" />
-      </nuxt-link>
-    </div>
-    <h1 class="placeholder__title">{{ message }}</h1>
-    <p v-if="error.statusCode === 404" class="placeholder__content">
-      {{ $t('errorLayout.notFound') }}
-    </p>
-    <p v-else class="placeholder__content">{{ content }}</p>
-    <div v-if="showBackButton" class="placeholder__action">
-      <Button
-        v-if="isAuthenticated && currentRouteName === 'dashboard'"
-        type="primary"
-        icon="iconoir-redo"
-        @click="refresh"
-      >
-        {{ $t('errorLayout.refresh') }}</Button
-      >
-
-      <Button
-        v-else-if="isAuthenticated && currentRouteName !== 'dashboard'"
-        tag="nuxt-link"
-        :to="{ name: 'dashboard' }"
-        type="primary"
-        size="large"
-        icon="iconoir-nav-arrow-left"
-      >
-        {{ $t('errorLayout.backDashboard') }}</Button
-      >
-
-      <Button
-        v-else
-        tag="nuxt-link"
-        :to="{ name: 'login' }"
-        type="primary"
-        size="large"
-        icon="iconoir-nav-arrow-left"
-      >
-        {{ $t('errorLayout.backLogin') }}</Button
-      >
+  <div v-if="!redirecting" class="error-page">
+    <div class="error-page__content">
+      <p class="error-page__subheading">
+        {{ statusCode }} {{ $t('errorLayout.errorLabel') }}
+      </p>
+      <h1 class="error-page__title">{{ title }}</h1>
+      <p class="error-page__body">{{ description }}</p>
+      <div v-if="showBackButton" class="error-page__actions">
+        <a class="error-page__btn error-page__btn--secondary" @click="goBack">
+          <i class="iconoir-nav-arrow-left"></i>
+          {{ $t('errorLayout.goBack') }}
+        </a>
+        <nuxt-link
+          class="error-page__btn error-page__btn--primary"
+          :to="homeRoute"
+        >
+          {{ $t('errorLayout.takeHome') }}
+        </nuxt-link>
+      </div>
     </div>
   </div>
 </template>
@@ -63,24 +40,30 @@ export default {
   },
   head() {
     return {
-      title: this.message,
+      title: this.title,
     }
   },
   computed: {
     statusCode() {
       return (this.error && this.error.statusCode) || 500
     },
-    message() {
+    title() {
+      if (this.error.statusCode === 404) {
+        return this.$t('errorLayout.notFoundTitle')
+      }
       return this.error.message || this.$t('errorLayout.wrong')
     },
-    content() {
+    description() {
+      if (this.error.statusCode === 404) {
+        return this.$t('errorLayout.notFound')
+      }
       return this.error.content ?? this.$t('errorLayout.error')
     },
     showBackButton() {
       return !this.error.hideBackButton
     },
-    currentRouteName() {
-      return this.$route.name
+    homeRoute() {
+      return this.isAuthenticated ? { name: 'dashboard' } : { name: 'login' }
     },
     ...mapGetters({
       isAuthenticated: 'auth/isAuthenticated',
@@ -99,8 +82,8 @@ export default {
     }
   },
   methods: {
-    refresh() {
-      location.reload()
+    goBack() {
+      this.$router.back()
     },
   },
 }
