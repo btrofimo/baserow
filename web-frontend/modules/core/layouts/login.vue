@@ -1,9 +1,15 @@
 <template>
-  <div>
+  <div class="auth__split">
     <Toasts></Toasts>
-    <div class="auth__container">
-      <slot />
+    <div class="auth__panel">
+      <div class="auth__container">
+        <slot />
+      </div>
+      <div class="auth__copyright">
+        &copy; TCR CG, PLLC
+      </div>
     </div>
+    <div class="auth__image" />
   </div>
 </template>
 

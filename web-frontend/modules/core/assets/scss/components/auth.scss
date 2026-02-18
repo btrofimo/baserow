@@ -1,45 +1,70 @@
 .auth__body {
-  background:
-    radial-gradient(
-      circle at 10% 8%,
-      themed-alpha($color-primary-500, 0.09) 0%,
-      transparent 45%
-    ),
-    radial-gradient(
-      circle at 90% 92%,
-      themed-alpha($color-primary-500, 0.05) 0%,
-      transparent 42%
-    ),
-    $color-neutral-50;
-  color: $color-neutral-900;
+  background: $color-neutral-900;
+  color: $color-neutral-100;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.auth__split {
+  display: flex;
+  flex-direction: row;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+}
+
+.auth__panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 480px;
+  max-width: 640px;
+  width: 44%;
+  height: 100%;
+  overflow-y: auto;
+  background: $color-neutral-900;
+
+  @media screen and (max-width: 768px) {
+    min-width: 100%;
+    max-width: 100%;
+    width: 100%;
+  }
 }
 
 .auth__container {
-  position: relative;
-  z-index: 1;
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh; /* handle the issue of the  view port full height on Safari iOS https://stackoverflow.com/questions/76303977/svh-units-not-working-properly-in-mobile-safari */
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  padding: 24px;
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background-image: linear-gradient(
-      130deg,
-      themed-alpha($color-primary-500, 0.08) 0%,
-      transparent 55%
-    );
-  }
+  justify-content: center;
+  flex: 1;
+  padding: 32px;
 
   @media screen and (max-width: 480px) {
     padding: 16px;
   }
+}
+
+.auth__image {
+  flex: 1;
+  background: url('@baserow/modules/core/static/img/auth-bg.jpg') center / cover no-repeat;
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.15);
+  }
+
+  @media screen and (max-width: 768px) {
+    display: none;
+  }
+}
+
+.auth__copyright {
+  padding: 32px;
+  font-size: 11px;
+  color: $color-neutral-500;
 }
 
 .auth__logo {
