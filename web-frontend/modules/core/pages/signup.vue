@@ -9,7 +9,7 @@
         </nuxt-link>
       </div>
 
-      <h1 class="auth__head-title">{{ $t('signup.headTitle') }}</h1>
+      <h1 class="auth__head-title auth__head-title--sm">{{ $t('signup.headTitle') }}</h1>
       <div class="auth__head">
         <span class="auth__head-text">
           {{ $t('signup.loginText') }}
