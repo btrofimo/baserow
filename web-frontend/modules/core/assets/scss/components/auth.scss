@@ -283,6 +283,20 @@
   text-align: center;
 }
 
+.auth__featured-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid $color-neutral-600;
+  background: transparent;
+  color: $color-neutral-400;
+  font-size: 24px;
+  margin-bottom: 24px;
+}
+
 // Light theme overrides
 [data-theme='light'] {
   .auth__body {

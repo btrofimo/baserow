@@ -9,7 +9,10 @@
           <Logo />
         </nuxt-link>
       </div>
-      <div class="auth__head auth__head-title">
+      <div class="auth__featured-icon">
+        <i class="iconoir-key-alt"></i>
+      </div>
+      <div class="auth__head auth__head-title auth__head-title--sm">
         <h1 class="margin-bottom-0">{{ $t('forgotPassword.title') }}</h1>
         <LangPicker />
       </div>
