@@ -543,6 +543,30 @@
     "noWorkspace": "No workspace",
     "noWorkspaceDescription": "Get started by creating a new workspace"
   },
+  "portal": {
+    "title": "Client Portal",
+    "welcome": "Hey, Welcome {name}.",
+    "searchPlaceholder": "Search all projects, and internal resources",
+    "search": "Search",
+    "quickLinks": "Quick Links",
+    "projectGuidelines": "Project Guidelines",
+    "internalResources": "Internal Resources",
+    "library": "Library",
+    "projects": "Projects",
+    "activeProjects": "Active Projects",
+    "newProject": "New Project",
+    "newDeliverable": "New Deliverable",
+    "projectArchive": "Project Archive",
+    "schedule": "Schedule",
+    "loading": "Loading projects...",
+    "noDatabase": "No project database found in this workspace.",
+    "street": "Street",
+    "cityStateZip": "City, State Zip",
+    "fileNo": "File No.",
+    "projectStatus": "Project Status",
+    "priority": "Priority",
+    "request": "Request"
+  },
   "dashboardApplication": {
     "createdAt": "created"
   },
