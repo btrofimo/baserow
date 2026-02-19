@@ -77,6 +77,11 @@ export const routes = [
         file: path.resolve(__dirname, 'pages/workspace.vue'),
       },
       {
+        name: 'portal',
+        path: '/portal/:workspaceId',
+        file: path.resolve(__dirname, 'pages/portal.vue'),
+      },
+      {
         name: 'admin-settings',
         path: '/admin/settings',
         file: path.resolve(__dirname, 'pages/admin/settings.vue'),
