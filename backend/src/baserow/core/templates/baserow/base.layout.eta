@@ -54,8 +54,8 @@
               font-family="Inter,sans-serif"
               font-weight="600"
               align="left"
-              background-color="#5190ef"
-              border-radius="4px"
+              background-color="#dc4b1a"
+              border-radius="8px"
               inner-padding="12px 30px"
       />
       <mj-class
