@@ -1,0 +1,107 @@
+.portal-sidebar {
+  width: 230px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+  }
+
+  &__header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    i {
+      font-size: 18px;
+      color: $color-neutral-500;
+    }
+  }
+
+  &__title {
+    font-size: 12px;
+    font-weight: 700;
+    color: $color-neutral-900;
+  }
+
+  &__more-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: $color-neutral-500;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+
+    i {
+      font-size: 18px;
+    }
+  }
+
+  &__counter {
+    background: themed-alpha($color-neutral-900, 0.06);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+
+  &__counter-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: $color-primary-text;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  &__counter-value {
+    font-size: 20px;
+    font-weight: 600;
+    color: $color-neutral-900;
+    line-height: 28px;
+  }
+
+  &__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__action-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    background: $color-primary-500;
+    transition: opacity 0.15s;
+    width: 100%;
+    text-align: left;
+
+    &:hover {
+      opacity: 0.9;
+    }
+
+    i {
+      font-size: 16px;
+    }
+
+    &--secondary {
+      background: themed-alpha($color-neutral-900, 0.06);
+      color: $color-neutral-900;
+
+      &:hover {
+        background: themed-alpha($color-neutral-900, 0.1);
+      }
+    }
+  }
+}
