@@ -565,7 +565,10 @@
     "fileNo": "File No.",
     "projectStatus": "Project Status",
     "priority": "Priority",
-    "request": "Request"
+    "request": "Request",
+    "previousPage": "Previous",
+    "nextPage": "Next",
+    "pageOf": "Page {current} of {total}"
   },
   "dashboardApplication": {
     "createdAt": "created"

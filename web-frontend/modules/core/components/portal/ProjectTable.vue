@@ -99,18 +99,20 @@
         @click="table.previousPage()"
       >
         <i class="iconoir-nav-arrow-left"></i>
-        Previous
+        {{ i18n.t('portal.previousPage') }}
       </button>
       <span class="portal-table__page-info">
-        Page {{ table.getState().pagination.pageIndex + 1 }} of
-        {{ table.getPageCount() }}
+        {{ i18n.t('portal.pageOf', {
+          current: table.getState().pagination.pageIndex + 1,
+          total: table.getPageCount(),
+        }) }}
       </span>
       <button
         class="portal-table__page-btn"
         :disabled="!table.getCanNextPage()"
         @click="table.nextPage()"
       >
-        Next
+        {{ i18n.t('portal.nextPage') }}
         <i class="iconoir-nav-arrow-right"></i>
       </button>
     </div>
@@ -131,6 +133,8 @@ import ProjectStatusBadge from '@baserow/modules/core/components/portal/badges/P
 import PriorityBadge from '@baserow/modules/core/components/portal/badges/PriorityBadge'
 import RequestTypeBadge from '@baserow/modules/core/components/portal/badges/RequestTypeBadge'
 import { createProjectColumns } from '@baserow/modules/core/components/portal/useProjectColumns'
+
+const i18n = useI18n()
 
 const props = defineProps({
   rows: {
