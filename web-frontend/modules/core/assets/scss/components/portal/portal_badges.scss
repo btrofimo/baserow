@@ -1,0 +1,92 @@
+.portal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 2px;
+  border: 1px solid;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 12px;
+  white-space: nowrap;
+
+  &--text-only {
+    padding: 4px 12px;
+  }
+
+  &--with-icon {
+    padding: 4px 12px 4px 10px;
+  }
+
+  &__icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    i {
+      font-size: 16px;
+    }
+  }
+
+  &--gray-blue {
+    background: #f8f9fc;
+    border-color: #d5d9eb;
+    color: #363f72;
+  }
+
+  &--warning {
+    background: #fffaeb;
+    border-color: #fedf89;
+    color: #b54708;
+  }
+
+  &--orange {
+    background: #fef6ee;
+    border-color: #f9dbaf;
+    color: #b93815;
+  }
+
+  &--brand {
+    background: #fef6ee;
+    border-color: #f9d1af;
+    color: #b73817;
+  }
+
+  &--success {
+    background: #ecfdf3;
+    border-color: #abefc6;
+    color: #067647;
+  }
+
+  &--gray {
+    background: #fafafa;
+    border-color: #e9eaeb;
+    color: #454545;
+  }
+
+  &--pink {
+    background: #fdf2fa;
+    border-color: #fcceee;
+    color: #c11574;
+  }
+
+  &--error {
+    background: #fef3f2;
+    border-color: #fecdca;
+    color: #b42318;
+  }
+
+  &--blue-light {
+    background: #f0f9ff;
+    border-color: #b9e6fe;
+    color: #026aa2;
+  }
+
+  &--indigo {
+    background: #eef4ff;
+    border-color: #c7d7fe;
+    color: #3538cd;
+  }
+}

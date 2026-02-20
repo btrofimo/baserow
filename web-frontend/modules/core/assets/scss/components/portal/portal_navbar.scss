@@ -1,0 +1,8 @@
+// Portal-specific overrides when inside the portal page.
+// The portal uses the existing app layout but applies dark styling overrides.
+.portal {
+  & + .layout__col-2,
+  & {
+    background: #0f0f0f;
+  }
+}

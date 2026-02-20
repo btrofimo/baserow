@@ -1,0 +1,58 @@
+.portal {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #0f0f0f;
+  color: $color-neutral-900;
+
+  &__welcome {
+    text-align: center;
+    padding: 40px 24px 24px;
+  }
+
+  &__welcome-text {
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 28px;
+    color: $color-neutral-900;
+  }
+
+  &__content {
+    padding: 0 40px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex: 1;
+  }
+
+  &__body {
+    display: flex;
+    gap: 24px;
+    flex: 1;
+  }
+
+  &__main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px;
+    color: $color-neutral-500;
+    font-size: 14px;
+  }
+
+  &__error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 80px 24px;
+    color: $color-neutral-500;
+    font-size: 14px;
+    text-align: center;
+  }
+}

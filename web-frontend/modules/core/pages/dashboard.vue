@@ -81,7 +81,7 @@ const allWorkspaces = computed(() => store.getters['workspace/getAll'])
 if (Object.keys(selectedWorkspace.value).length > 0) {
   await navigateTo(
     {
-      name: 'workspace',
+      name: 'portal',
       params: { workspaceId: selectedWorkspace.value.id },
       query: route.query,
     },
@@ -90,7 +90,7 @@ if (Object.keys(selectedWorkspace.value).length > 0) {
 } else if (allWorkspaces.value?.length > 0) {
   await navigateTo(
     {
-      name: 'workspace',
+      name: 'portal',
       params: { workspaceId: allWorkspaces.value[0].id },
       query: route.query,
     },
