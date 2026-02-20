@@ -34,6 +34,7 @@
     "@sentry/node": "^10.38.0",
     "@sentry/nuxt": "^10.38.0",
     "@sentry/vue": "^10.38.0",
+    "@tanstack/vue-table": "^8.21.3",
     "@tiptap/core": "^3.13.0",
     "@tiptap/extension-blockquote": "^3.13.0",
     "@tiptap/extension-bold": "^3.13.0",
