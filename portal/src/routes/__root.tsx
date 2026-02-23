@@ -1,16 +1,15 @@
 import {
   HeadContent,
+  Outlet,
   Scripts,
   createRootRouteWithContext,
 } from '@tanstack/react-router'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 
-import Header from '../components/Header'
+import { AuthContext } from '../hooks/useAuth'
+import { getLoginUrl, getLogoutUrl } from '../api/auth.functions'
 
 import TanStackQueryProvider from '../integrations/tanstack-query/root-provider'
-
-import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
 import appCss from '../styles.css?url'
 
@@ -31,7 +30,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'TCR Client Portal',
       },
     ],
     links: [
@@ -45,6 +44,43 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const [idToken, setIdToken] = useState<string | null>(null)
+  const [user, setUser] = useState<{ sub: string; email: string } | null>(null)
+
+  useEffect(() => {
+    const storedToken = sessionStorage.getItem('idToken')
+    const storedUser = sessionStorage.getItem('user')
+    if (storedToken && storedUser) {
+      setIdToken(storedToken)
+      setUser(JSON.parse(storedUser))
+    }
+  }, [])
+
+  const login = useCallback(async () => {
+    const { url } = await getLoginUrl()
+    window.location.href = url
+  }, [])
+
+  const logout = useCallback(async () => {
+    sessionStorage.removeItem('idToken')
+    sessionStorage.removeItem('user')
+    setIdToken(null)
+    setUser(null)
+    const { url } = await getLogoutUrl()
+    window.location.href = url
+  }, [])
+
+  const authValue = useMemo(
+    () => ({
+      user,
+      idToken,
+      isAuthenticated: !!idToken && !!user,
+      login,
+      logout,
+    }),
+    [user, idToken, login, logout]
+  )
+
   return (
     <html lang="en">
       <head>
@@ -52,20 +88,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <TanStackQueryProvider>
-          <Header />
-          {children}
-          <TanStackDevtools
-            config={{
-              position: 'bottom-right',
-            }}
-            plugins={[
-              {
-                name: 'Tanstack Router',
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-              TanStackQueryDevtools,
-            ]}
-          />
+          <AuthContext.Provider value={authValue}>
+            {children}
+          </AuthContext.Provider>
         </TanStackQueryProvider>
         <Scripts />
       </body>
