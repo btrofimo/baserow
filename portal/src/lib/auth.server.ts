@@ -75,3 +75,33 @@ export function buildCognitoLogoutUrl(): string {
 
   return `https://${domain}/logout?${params.toString()}`
 }
+
+export async function exchangeCodeForTokens(
+  code: string
+): Promise<{ idToken: string; accessToken: string; refreshToken: string }> {
+  const domain = process.env.COGNITO_DOMAIN!
+  const clientId = process.env.COGNITO_CLIENT_ID!
+  const redirectUri = process.env.COGNITO_REDIRECT_URI!
+
+  const response = await fetch(`https://${domain}/oauth2/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: clientId,
+      code,
+      redirect_uri: redirectUri,
+    }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Token exchange failed: ${response.status}`)
+  }
+
+  const data = await response.json()
+  return {
+    idToken: data.id_token,
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token,
+  }
+}
