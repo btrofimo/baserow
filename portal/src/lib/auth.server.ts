@@ -23,6 +23,11 @@ export function extractBearerToken(
   return header.slice(7)
 }
 
+/**
+ * Decode a Cognito ID token payload WITHOUT verifying the signature.
+ * Only use on tokens freshly received from a trusted Cognito endpoint.
+ * For user-supplied tokens, use verifyCognitoToken() instead.
+ */
 export function parseCognitoIdToken(
   token: string
 ): { sub: string; email: string } {

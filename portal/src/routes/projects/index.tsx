@@ -31,7 +31,12 @@ function ProjectsListPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">TCR Client Portal</h1>
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#dc4b1a]">
+              <span className="text-sm font-bold text-white">T</span>
+            </div>
+            <h1 className="text-xl font-bold text-gray-900">TCR Client Portal</h1>
+          </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">{user?.email}</span>
             <button
@@ -55,14 +60,55 @@ function ProjectsListPage() {
           </Link>
         </div>
 
-        {isLoading && <p className="text-gray-500">Loading projects...</p>}
+        {isLoading && <ProjectsTableSkeleton />}
         {error && (
-          <p className="text-red-600">
-            Failed to load projects. Please try again.
-          </p>
+          <div className="rounded-lg bg-red-50 border border-red-200 p-4">
+            <p className="text-red-700 text-sm">
+              Failed to load projects. Please try again.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-2 text-sm text-red-600 underline hover:text-red-800"
+            >
+              Retry
+            </button>
+          </div>
         )}
-        {data && <ProjectsTable data={data.records} />}
+        {data && data.records.length === 0 && (
+          <div className="text-center py-16">
+            <p className="text-gray-500 mb-4">You have no projects yet.</p>
+            <Link
+              to="/projects/submit"
+              className="inline-block px-6 py-2 bg-[#dc4b1a] text-white rounded-lg text-sm font-medium hover:bg-[#c54318] transition-colors"
+            >
+              Submit Your First Project
+            </Link>
+          </div>
+        )}
+        {data && data.records.length > 0 && (
+          <ProjectsTable data={data.records} />
+        )}
       </main>
+    </div>
+  )
+}
+
+function ProjectsTableSkeleton() {
+  return (
+    <div className="animate-pulse">
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="h-10 bg-gray-100" />
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex gap-4 px-6 py-4 border-t border-gray-100">
+            <div className="h-4 w-20 rounded bg-gray-200" />
+            <div className="h-4 w-32 rounded bg-gray-200" />
+            <div className="h-4 w-24 rounded bg-gray-200" />
+            <div className="h-4 w-12 rounded bg-gray-200" />
+            <div className="h-4 w-16 rounded bg-gray-200" />
+            <div className="h-4 w-16 rounded bg-gray-200" />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

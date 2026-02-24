@@ -71,9 +71,17 @@ function ProjectDetailPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        {projectQuery.isLoading && <p>Loading project...</p>}
+        {projectQuery.isLoading && <ProjectDetailSkeleton />}
         {projectQuery.error && (
-          <p className="text-red-600">Failed to load project.</p>
+          <div className="rounded-lg bg-red-50 border border-red-200 p-4">
+            <p className="text-red-700 text-sm">Failed to load project.</p>
+            <button
+              onClick={() => projectQuery.refetch()}
+              className="mt-2 text-sm text-red-600 underline hover:text-red-800"
+            >
+              Retry
+            </button>
+          </div>
         )}
 
         {project && (
@@ -128,13 +136,48 @@ function ProjectDetailPage() {
             <div className="bg-white shadow rounded-lg p-6">
               <CommentThread
                 comments={(commentsQuery.data?.records ?? []) as any}
-                onSubmit={(body) => addCommentMutation.mutateAsync(body)}
+                onSubmit={async (body) => { await addCommentMutation.mutateAsync(body) }}
                 isSubmitting={addCommentMutation.isPending}
               />
             </div>
           </>
         )}
       </main>
+    </div>
+  )
+}
+
+function ProjectDetailSkeleton() {
+  return (
+    <div className="animate-pulse space-y-6">
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="space-y-2">
+            <div className="h-7 w-64 rounded bg-gray-200" />
+            <div className="h-5 w-40 rounded bg-gray-200" />
+          </div>
+          <div className="flex gap-2">
+            <div className="h-6 w-20 rounded-full bg-gray-200" />
+            <div className="h-6 w-16 rounded-full bg-gray-200" />
+          </div>
+        </div>
+        <div className="flex gap-4 mt-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full bg-gray-200" />
+              <div className="h-4 w-16 rounded bg-gray-200" />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-4 mt-6">
+          <div className="h-4 w-32 rounded bg-gray-200" />
+          <div className="h-4 w-40 rounded bg-gray-200" />
+        </div>
+      </div>
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="h-5 w-24 rounded bg-gray-200 mb-4" />
+        <div className="h-20 rounded bg-gray-100" />
+      </div>
     </div>
   )
 }

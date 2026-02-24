@@ -15,7 +15,7 @@ interface ListOptions {
 
 interface AirtableRecord {
   id: string
-  fields: Record<string, unknown>
+  fields: Record<string, string | number | boolean | string[] | null>
   createdTime?: string
 }
 
@@ -85,7 +85,7 @@ export function createAirtableClient(config: AirtableConfig) {
 
     async createRecord(
       table: string,
-      fields: Record<string, unknown>
+      fields: Record<string, string | number | boolean | string[] | null>
     ): Promise<AirtableRecord> {
       const url = `${AIRTABLE_API_URL}/${config.baseId}/${table}`
       const response = await fetch(url, {
@@ -100,7 +100,7 @@ export function createAirtableClient(config: AirtableConfig) {
     async updateRecord(
       table: string,
       recordId: string,
-      fields: Record<string, unknown>
+      fields: Record<string, string | number | boolean | string[] | null>
     ): Promise<AirtableRecord> {
       const url = `${AIRTABLE_API_URL}/${config.baseId}/${table}`
       const response = await fetch(url, {

@@ -1,8 +1,10 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useForm } from '@tanstack/react-form'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { submitProject } from '../../api/projects.functions'
+import { AddressAutocomplete } from '../../components/AddressAutocomplete'
+import type { GeocodingResult } from '../../lib/geocoding.server'
 
 export const Route = createFileRoute('/projects/submit')({
   component: SubmitProjectPage,
@@ -30,6 +32,7 @@ const PRIORITIES = ['Low', 'Medium', 'High']
 function SubmitProjectPage() {
   const { isAuthenticated, idToken } = useAuth()
   const navigate = useNavigate()
+  const [submitError, setSubmitError] = useState('')
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -46,17 +49,35 @@ function SubmitProjectPage() {
       requestType: [] as string[],
       priority: '',
       notes: '',
+      latitude: undefined as number | undefined,
+      longitude: undefined as number | undefined,
     },
     onSubmit: async ({ value }) => {
-      await submitProject({
-        data: {
-          idToken: idToken!,
-          fields: value,
-        },
-      })
-      navigate({ to: '/projects' })
+      setSubmitError('')
+      try {
+        await submitProject({
+          data: {
+            idToken: idToken!,
+            fields: {
+              ...value,
+              priority: value.priority as 'Low' | 'Medium' | 'High',
+            },
+          },
+        })
+        navigate({ to: '/projects' })
+      } catch {
+        setSubmitError('Failed to submit project. Please try again.')
+      }
     },
   })
+
+  function handleAddressSelect(result: GeocodingResult) {
+    form.setFieldValue('street', result.street)
+    form.setFieldValue('city', result.city)
+    form.setFieldValue('state', result.state)
+    form.setFieldValue('latitude', result.latitude)
+    form.setFieldValue('longitude', result.longitude)
+  }
 
   if (!isAuthenticated) return null
 
@@ -76,6 +97,22 @@ function SubmitProjectPage() {
           }}
           className="bg-white shadow rounded-lg p-6 space-y-6"
         >
+          {submitError && (
+            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              {submitError}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Search Address
+            </label>
+            <AddressAutocomplete
+              onSelect={handleAddressSelect}
+              placeholder="Type an address to search (e.g., 100 N Riverside Plaza, Chicago)"
+            />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <form.Field
               name="street"

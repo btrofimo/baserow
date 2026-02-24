@@ -1,11 +1,12 @@
 import { createServer } from 'node:http'
 import { Readable } from 'node:stream'
-import { createReadStream, existsSync } from 'node:fs'
-import { join, extname } from 'node:path'
+import { createReadStream } from 'node:fs'
+import { stat } from 'node:fs/promises'
+import { join, extname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
-const clientDir = join(__dirname, 'dist', 'client')
+const clientDir = resolve(join(__dirname, 'dist', 'client'))
 const port = parseInt(process.env.PORT || '3000', 10)
 
 const MIME_TYPES = {
@@ -33,16 +34,27 @@ const server = createServer(async (req, res) => {
     const pathname = new URL(req.url || '/', 'http://localhost').pathname
 
     if (pathname.startsWith('/assets/')) {
-      const filePath = join(clientDir, pathname)
-      if (existsSync(filePath)) {
-        const ext = extname(filePath)
-        const contentType = MIME_TYPES[ext] || 'application/octet-stream'
-        res.writeHead(200, {
-          'Content-Type': contentType,
-          'Cache-Control': 'public, max-age=31536000, immutable',
-        })
-        createReadStream(filePath).pipe(res)
+      const filePath = resolve(join(clientDir, pathname))
+      if (!filePath.startsWith(clientDir)) {
+        res.writeHead(403)
+        res.end('Forbidden')
         return
+      }
+      try {
+        const fileStat = await stat(filePath)
+        if (fileStat.isFile()) {
+          const ext = extname(filePath)
+          const contentType = MIME_TYPES[ext] || 'application/octet-stream'
+          res.writeHead(200, {
+            'Content-Type': contentType,
+            'Content-Length': fileStat.size,
+            'Cache-Control': 'public, max-age=31536000, immutable',
+          })
+          createReadStream(filePath).pipe(res)
+          return
+        }
+      } catch {
+        // File not found, fall through to SSR
       }
     }
 

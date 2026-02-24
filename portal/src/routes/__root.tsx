@@ -1,13 +1,12 @@
 import {
   HeadContent,
-  Outlet,
   Scripts,
   createRootRouteWithContext,
 } from '@tanstack/react-router'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 
 import { AuthContext } from '../hooks/useAuth'
-import { getLoginUrl, getLogoutUrl } from '../api/auth.functions'
+import { getLogoutUrl } from '../api/auth.functions'
 
 import TanStackQueryProvider from '../integrations/tanstack-query/root-provider'
 
@@ -32,11 +31,21 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       {
         title: 'TCR Client Portal',
       },
+      {
+        name: 'description',
+        content:
+          'Submit and track your project requests with TCR.',
+      },
     ],
     links: [
       {
         rel: 'stylesheet',
         href: appCss,
+      },
+      {
+        rel: 'icon',
+        type: 'image/svg+xml',
+        href: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="%23dc4b1a"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="system-ui" font-weight="700" font-size="18" fill="white">T</text></svg>',
       },
     ],
   }),
@@ -56,9 +65,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const login = useCallback(async () => {
-    const { url } = await getLoginUrl()
-    window.location.href = url
+  const login = useCallback(() => {
+    window.location.href = '/auth/login'
   }, [])
 
   const logout = useCallback(async () => {

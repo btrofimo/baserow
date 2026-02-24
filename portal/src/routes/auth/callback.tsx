@@ -23,13 +23,16 @@ function AuthCallbackPage() {
         navigate({ to: '/projects' })
       })
       .catch(() => {
-        navigate({ to: '/' })
+        navigate({ to: '/auth/login' })
       })
   }, [navigate])
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <p className="text-lg">Signing you in...</p>
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="text-center space-y-4">
+        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-[#dc4b1a]" />
+        <p className="text-lg text-gray-600">Signing you in...</p>
+      </div>
     </div>
   )
 }
