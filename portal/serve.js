@@ -1,7 +1,25 @@
 import { createServer } from 'node:http'
 import { Readable } from 'node:stream'
+import { createReadStream, existsSync } from 'node:fs'
+import { join, extname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
+const __dirname = fileURLToPath(new URL('.', import.meta.url))
+const clientDir = join(__dirname, 'dist', 'client')
 const port = parseInt(process.env.PORT || '3000', 10)
+
+const MIME_TYPES = {
+  '.js': 'application/javascript',
+  '.css': 'text/css',
+  '.html': 'text/html',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+}
 
 async function loadApp() {
   const mod = await import('./dist/server/server.js')
@@ -12,6 +30,22 @@ const app = await loadApp()
 
 const server = createServer(async (req, res) => {
   try {
+    const pathname = new URL(req.url || '/', 'http://localhost').pathname
+
+    if (pathname.startsWith('/assets/')) {
+      const filePath = join(clientDir, pathname)
+      if (existsSync(filePath)) {
+        const ext = extname(filePath)
+        const contentType = MIME_TYPES[ext] || 'application/octet-stream'
+        res.writeHead(200, {
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=31536000, immutable',
+        })
+        createReadStream(filePath).pipe(res)
+        return
+      }
+    }
+
     const protocol = req.headers['x-forwarded-proto'] || 'http'
     const host = req.headers.host || `localhost:${port}`
     const url = new URL(req.url || '/', `${protocol}://${host}`)
