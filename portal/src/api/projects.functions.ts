@@ -17,7 +17,6 @@ export const listProjects = createServerFn({ method: 'POST' })
 
     return airtable.listRecords(process.env.AIRTABLE_PROJECTS_TABLE!, {
       filterByFormula: `{Cognito User ID}="${user.sub}"`,
-      sort: [{ field: 'Created', direction: 'desc' }],
       pageSize: 25,
       offset: data.offset,
     })

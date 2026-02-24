@@ -16,8 +16,7 @@ export const listComments = createServerFn({ method: 'POST' })
     const airtable = getAirtable()
 
     return airtable.listRecords(process.env.AIRTABLE_COMMENTS_TABLE!, {
-      filterByFormula: `{Project}="${data.projectRecordId}"`,
-      sort: [{ field: 'Created At', direction: 'asc' }],
+      filterByFormula: `{Project Record ID}="${data.projectRecordId}"`,
     })
   })
 
@@ -31,6 +30,7 @@ export const addComment = createServerFn({ method: 'POST' })
 
     return airtable.createRecord(process.env.AIRTABLE_COMMENTS_TABLE!, {
       Project: [data.projectRecordId],
+      'Project Record ID': data.projectRecordId,
       Author: user.email,
       Body: data.body,
     })
