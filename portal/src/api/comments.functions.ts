@@ -10,7 +10,7 @@ function getAirtable() {
 }
 
 export const listComments = createServerFn({ method: 'POST' })
-  .validator((data: { idToken: string; projectRecordId: string }) => data)
+  .inputValidator((data: { idToken: string; projectRecordId: string }) => data)
   .handler(async ({ data }) => {
     await verifyCognitoToken(data.idToken)
     const airtable = getAirtable()
@@ -21,7 +21,7 @@ export const listComments = createServerFn({ method: 'POST' })
   })
 
 export const addComment = createServerFn({ method: 'POST' })
-  .validator(
+  .inputValidator(
     (data: { idToken: string; projectRecordId: string; body: string }) => data
   )
   .handler(async ({ data }) => {

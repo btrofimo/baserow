@@ -10,7 +10,7 @@ function getAirtable() {
 }
 
 export const listProjects = createServerFn({ method: 'POST' })
-  .validator((data: { idToken: string; offset?: string }) => data)
+  .inputValidator((data: { idToken: string; offset?: string }) => data)
   .handler(async ({ data }) => {
     const user = await verifyCognitoToken(data.idToken)
     const airtable = getAirtable()
@@ -23,7 +23,7 @@ export const listProjects = createServerFn({ method: 'POST' })
   })
 
 export const getProject = createServerFn({ method: 'POST' })
-  .validator((data: { idToken: string; recordId: string }) => data)
+  .inputValidator((data: { idToken: string; recordId: string }) => data)
   .handler(async ({ data }) => {
     const user = await verifyCognitoToken(data.idToken)
     const airtable = getAirtable()
@@ -43,7 +43,7 @@ export const getProject = createServerFn({ method: 'POST' })
   })
 
 export const submitProject = createServerFn({ method: 'POST' })
-  .validator(
+  .inputValidator(
     (data: {
       idToken: string
       fields: {

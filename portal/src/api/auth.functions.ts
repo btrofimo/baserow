@@ -19,7 +19,7 @@ export const getLogoutUrl = createServerFn({ method: 'GET' }).handler(
 )
 
 export const handleAuthCallback = createServerFn({ method: 'POST' })
-  .validator((data: { code: string }) => data)
+  .inputValidator((data: { code: string }) => data)
   .handler(async ({ data }) => {
     const tokens = await exchangeCodeForTokens(data.code)
     const user = parseCognitoIdToken(tokens.idToken)
