@@ -1,15 +1,81 @@
 @import "tailwindcss";
 
+@theme {
+  /* Backgrounds */
+  --color-bg-primary: #141414;
+  --color-bg-secondary: #1e1e1e;
+  --color-bg-tertiary: #2a2a2a;
+  --color-bg-elevated: #333333;
+
+  /* Borders */
+  --color-border-default: #333333;
+  --color-border-subtle: #2a2a2a;
+  --color-border-focus: #dc4b1a;
+
+  /* Text */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a0a0a0;
+  --color-text-muted: #666666;
+
+  /* Accent */
+  --color-accent-orange: #dc4b1a;
+  --color-accent-orange-hover: #c54318;
+  --color-accent-gold: #c5962a;
+
+  /* Status */
+  --color-status-new-bg: #dbeafe;
+  --color-status-new-text: #1e40af;
+  --color-status-submitted-bg: #dcfce7;
+  --color-status-submitted-text: #166534;
+  --color-status-progress-bg: #c5962a;
+  --color-status-progress-text: #000000;
+  --color-status-rfi-bg: #fecaca;
+  --color-status-rfi-text: #991b1b;
+  --color-status-completed-bg: #f3f4f6;
+  --color-status-completed-text: #374151;
+  --color-status-archived-bg: #374151;
+  --color-status-archived-text: #d1d5db;
+  --color-status-pending-bg: #fef3c7;
+  --color-status-pending-text: #92400e;
+  --color-status-revision-bg: #fce7f3;
+  --color-status-revision-text: #9d174d;
+  --color-status-withdrawn-bg: #f3f4f6;
+  --color-status-withdrawn-text: #6b7280;
+  --color-status-accepted-bg: #d1fae5;
+  --color-status-accepted-text: #065f46;
+  --color-status-inspected-bg: #e0e7ff;
+  --color-status-inspected-text: #3730a3;
+  --color-status-report-bg: #f3e8ff;
+  --color-status-report-text: #6b21a8;
+  --color-status-estimate-bg: #fff7ed;
+  --color-status-estimate-text: #9a3412;
+  --color-status-document-bg: #f0fdf4;
+  --color-status-document-text: #166534;
+
+  /* Sidebar */
+  --sidebar-width: 15rem;
+  --sidebar-collapsed-width: 4rem;
+  --topnav-height: 3.5rem;
+}
+
 body {
-  @apply m-0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-    sans-serif;
+  @apply m-0 bg-bg-primary text-text-primary;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
-    monospace;
+/* Scrollbar styling for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-bg-elevated);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
 }
