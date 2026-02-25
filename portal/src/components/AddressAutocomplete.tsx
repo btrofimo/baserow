@@ -121,7 +121,7 @@ export function AddressAutocomplete({
               setIsOpen(true)
             }
           }}
-          className="w-full rounded-lg border border-gray-300 px-4 py-2 pr-10 text-sm focus:border-[#dc4b1a] focus:ring-2 focus:ring-[#dc4b1a]/20 focus:outline-none"
+          className="w-full rounded-lg border border-border-default bg-bg-tertiary px-4 py-2.5 pr-10 text-sm text-text-primary placeholder:text-text-muted transition-colors focus:border-border-focus focus:ring-2 focus:ring-accent-orange/20 focus:outline-none"
           placeholder={placeholder}
           role="combobox"
           aria-expanded={isOpen}
@@ -130,7 +130,7 @@ export function AddressAutocomplete({
         />
         {isSearching && (
           <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-[#dc4b1a]" />
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-border-default border-t-accent-orange" />
           </div>
         )}
       </div>
@@ -138,7 +138,7 @@ export function AddressAutocomplete({
       {isOpen && results.length > 0 && (
         <ul
           role="listbox"
-          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg"
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-border-default bg-bg-secondary shadow-lg"
         >
           {results.map((result, index) => (
             <li
@@ -147,17 +147,17 @@ export function AddressAutocomplete({
               aria-selected={index === activeIndex}
               className={`cursor-pointer px-4 py-3 text-sm ${
                 index === activeIndex
-                  ? 'bg-[#dc4b1a]/10 text-gray-900'
-                  : 'text-gray-700 hover:bg-gray-50'
+                  ? 'bg-bg-tertiary text-text-primary'
+                  : 'text-text-secondary hover:bg-bg-tertiary'
               }`}
               onClick={() => handleSelect(result)}
               onMouseEnter={() => setActiveIndex(index)}
             >
-              <div className="font-medium">
+              <div className="font-medium text-text-primary">
                 {result.street || result.city}
                 {result.street && result.city && `, ${result.city}`}
               </div>
-              <div className="mt-0.5 text-xs text-gray-500">
+              <div className="mt-0.5 text-xs text-text-muted">
                 {[result.state, result.zipCode].filter(Boolean).join(' ')}
               </div>
             </li>
@@ -165,7 +165,7 @@ export function AddressAutocomplete({
         </ul>
       )}
 
-      <p className="mt-1 text-xs text-gray-400">
+      <p className="mt-1 text-xs text-text-muted">
         Search powered by OpenStreetMap Nominatim
       </p>
     </div>

@@ -69,6 +69,13 @@ interface SubmitProjectInput {
     notes?: string
     latitude?: number
     longitude?: number
+    claimNo?: string
+    dol?: string
+    ownerCompany?: string
+    owner?: string
+    access?: string
+    accessRequested?: string
+    additionalComments?: string
   }
 }
 
@@ -84,6 +91,13 @@ const submitProjectSchema = z.object({
     notes: z.string().optional(),
     latitude: z.number().optional(),
     longitude: z.number().optional(),
+    claimNo: z.string().optional(),
+    dol: z.string().optional(),
+    ownerCompany: z.string().optional(),
+    owner: z.string().optional(),
+    access: z.string().optional(),
+    accessRequested: z.string().optional(),
+    additionalComments: z.string().optional(),
   }),
 })
 
@@ -111,6 +125,14 @@ export const submitProject = createServerFn({ method: 'POST' })
       fields['Latitude'] = validated.fields.latitude
       fields['Longitude'] = validated.fields.longitude
     }
+
+    if (validated.fields.claimNo) fields['Claim No'] = validated.fields.claimNo
+    if (validated.fields.dol) fields['DOL'] = validated.fields.dol
+    if (validated.fields.ownerCompany) fields['Owner Company'] = validated.fields.ownerCompany
+    if (validated.fields.owner) fields['Owner'] = validated.fields.owner
+    if (validated.fields.access) fields['Access'] = validated.fields.access
+    if (validated.fields.accessRequested) fields['Will Access Be Requested'] = validated.fields.accessRequested
+    if (validated.fields.additionalComments) fields['Additional Comments'] = validated.fields.additionalComments
 
     return airtable.createRecord(
       process.env.AIRTABLE_PROJECTS_TABLE!,
