@@ -28,10 +28,10 @@ function AuthCallbackPage() {
   }, [navigate])
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="text-center space-y-4">
-        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-[#dc4b1a]" />
-        <p className="text-lg text-gray-600">Signing you in...</p>
+    <div className="flex min-h-screen items-center justify-center bg-bg-primary">
+      <div className="space-y-4 text-center">
+        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-border-default border-t-accent-orange" />
+        <p className="text-lg text-text-secondary">Signing you in...</p>
       </div>
     </div>
   )

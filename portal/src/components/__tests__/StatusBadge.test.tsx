@@ -11,18 +11,20 @@ describe('StatusBadge', () => {
   it('applies different styles per status', () => {
     const { rerender } = render(<StatusBadge status="Submitted" />)
     const submitted = screen.getByText('Submitted')
-    expect(submitted.className).toContain('bg-blue')
+    expect(submitted.className).toContain('bg-status-submitted-bg')
 
     rerender(<StatusBadge status="In Review" />)
     const inReview = screen.getByText('In Review')
-    expect(inReview.className).toContain('bg-yellow')
-
-    rerender(<StatusBadge status="Approved" />)
-    const approved = screen.getByText('Approved')
-    expect(approved.className).toContain('bg-green')
+    expect(inReview.className).toContain('bg-status-pending-bg')
 
     rerender(<StatusBadge status="Completed" />)
     const completed = screen.getByText('Completed')
-    expect(completed.className).toContain('bg-gray')
+    expect(completed.className).toContain('bg-status-completed-bg')
+  })
+
+  it('applies fallback style for unknown status', () => {
+    render(<StatusBadge status="Unknown Status" />)
+    const badge = screen.getByText('Unknown Status')
+    expect(badge.className).toContain('bg-bg-tertiary')
   })
 })
