@@ -166,4 +166,9 @@ field-diagrams/
 web-frontend/.nuxt-storybook/
 web-frontend/storybook-static
 
+# Local generated artifacts
+.playwright-mcp/
+UI/
+!portal/src/components/ui/
+
 .agent
