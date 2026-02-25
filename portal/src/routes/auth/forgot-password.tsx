@@ -1,16 +1,22 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
+import { KeyRound, Mail, Lock, CheckCircle2 } from 'lucide-react'
 import {
   requestPasswordReset,
   confirmPasswordReset,
 } from '../../api/auth.functions'
+import { AuthLayout } from '../../components/layout/AuthLayout'
+import { Input } from '../../components/ui/Input'
+import { Button } from '../../components/ui/Button'
 
 export const Route = createFileRoute('/auth/forgot-password')({
   component: ForgotPasswordPage,
 })
 
 function ForgotPasswordPage() {
-  const [step, setStep] = useState<'email' | 'code' | 'done'>('email')
+  const [step, setStep] = useState<'email' | 'sent' | 'reset' | 'done'>(
+    'email'
+  )
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -33,7 +39,7 @@ function ForgotPasswordPage() {
       }
 
       setDestination(result.destination)
-      setStep('code')
+      setStep('sent')
     } catch {
       setError('Failed to send verification code. Please try again.')
     } finally {
@@ -75,178 +81,207 @@ function ForgotPasswordPage() {
     }
   }
 
+  const steps = ['email', 'sent', 'reset', 'done'] as const
+  const currentIndex = steps.indexOf(step)
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Reset Password</h1>
-          <p className="mt-2 text-gray-600">
-            {step === 'email' && "We'll send a verification code to your email"}
-            {step === 'code' &&
-              `Enter the code sent to ${destination}`}
-            {step === 'done' && 'Your password has been reset'}
-          </p>
+    <AuthLayout>
+      <div>
+        {/* Step indicator dots */}
+        <div className="mb-8 flex items-center justify-center gap-2">
+          {steps.map((s, i) => (
+            <div
+              key={s}
+              className={`h-2 w-2 rounded-full transition-colors ${
+                i <= currentIndex ? 'bg-accent-orange' : 'bg-bg-elevated'
+              }`}
+            />
+          ))}
         </div>
 
-        <div className="rounded-xl bg-white p-8 shadow-lg">
-          {error && (
-            <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-              {error}
+        {error && (
+          <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400">
+            {error}
+          </div>
+        )}
+
+        {/* Step 1: Enter email */}
+        {step === 'email' && (
+          <div className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-bg-tertiary">
+              <KeyRound size={24} className="text-accent-orange" />
             </div>
-          )}
-
-          {step === 'email' && (
-            <form onSubmit={handleRequestCode} className="space-y-5">
-              <div>
-                <label
-                  htmlFor="email"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  Email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-[#dc4b1a] focus:ring-2 focus:ring-[#dc4b1a]/20 focus:outline-none"
-                  placeholder="you@company.com"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full rounded-lg bg-[#dc4b1a] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#c54318] disabled:opacity-50"
-              >
-                {isLoading ? 'Sending...' : 'Send Verification Code'}
-              </button>
+            <h1 className="mb-2 text-2xl font-bold text-text-primary">
+              Forgot password?
+            </h1>
+            <p className="mb-6 text-sm text-text-secondary">
+              No worries, we&apos;ll send you reset instructions.
+            </p>
+            <form onSubmit={handleRequestCode} className="space-y-5 text-left">
+              <Input
+                id="email"
+                label="Email"
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+              />
+              <Button type="submit" disabled={isLoading} className="w-full">
+                {isLoading ? 'Sending...' : 'Reset password'}
+              </Button>
             </form>
-          )}
+            <Link
+              to="/auth/login"
+              className="mt-4 inline-block text-sm text-text-muted hover:text-text-secondary"
+            >
+              Back to log in
+            </Link>
+          </div>
+        )}
 
-          {step === 'code' && (
-            <form onSubmit={handleConfirmReset} className="space-y-5">
-              <div>
-                <label
-                  htmlFor="code"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  Verification Code
-                </label>
-                <input
-                  id="code"
-                  type="text"
-                  required
-                  autoComplete="one-time-code"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-[#dc4b1a] focus:ring-2 focus:ring-[#dc4b1a]/20 focus:outline-none"
-                  placeholder="Enter 6-digit code"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="newPassword"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  New Password
-                </label>
-                <input
-                  id="newPassword"
-                  type="password"
-                  required
-                  autoComplete="new-password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-[#dc4b1a] focus:ring-2 focus:ring-[#dc4b1a]/20 focus:outline-none"
-                  placeholder="At least 8 characters"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="confirmPassword"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  Confirm Password
-                </label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  required
-                  autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-[#dc4b1a] focus:ring-2 focus:ring-[#dc4b1a]/20 focus:outline-none"
-                  placeholder="Confirm your password"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full rounded-lg bg-[#dc4b1a] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#c54318] disabled:opacity-50"
-              >
-                {isLoading ? 'Resetting...' : 'Reset Password'}
-              </button>
-
+        {/* Step 2: Check email */}
+        {step === 'sent' && (
+          <div className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-bg-tertiary">
+              <Mail size={24} className="text-accent-orange" />
+            </div>
+            <h1 className="mb-2 text-2xl font-bold text-text-primary">
+              Check your email
+            </h1>
+            <p className="mb-6 text-sm text-text-secondary">
+              We sent a verification code to {destination}
+            </p>
+            <Button
+              className="w-full"
+              onClick={() => setStep('reset')}
+            >
+              Enter code
+            </Button>
+            <p className="mt-4 text-sm text-text-muted">
+              Didn&apos;t receive the email?{' '}
               <button
                 type="button"
                 onClick={() => {
                   setStep('email')
                   setError('')
                 }}
-                className="w-full text-center text-sm text-gray-500 hover:text-gray-700"
+                className="text-accent-orange hover:text-accent-orange-hover"
               >
-                Resend code
+                Click to resend
               </button>
-            </form>
-          )}
+            </p>
+            <Link
+              to="/auth/login"
+              className="mt-2 inline-block text-sm text-text-muted hover:text-text-secondary"
+            >
+              Back to log in
+            </Link>
+          </div>
+        )}
 
-          {step === 'done' && (
-            <div className="space-y-4 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-                <svg
-                  className="h-6 w-6 text-green-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
+        {/* Step 3: Set new password */}
+        {step === 'reset' && (
+          <div className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-bg-tertiary">
+              <Lock size={24} className="text-accent-orange" />
+            </div>
+            <h1 className="mb-2 text-2xl font-bold text-text-primary">
+              Set new password
+            </h1>
+            <p className="mb-6 text-sm text-text-secondary">
+              Enter the code and your new password.
+            </p>
+            <form
+              onSubmit={handleConfirmReset}
+              className="space-y-5 text-left"
+            >
+              <Input
+                id="code"
+                label="Verification Code"
+                type="text"
+                required
+                autoComplete="one-time-code"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="Enter 6-digit code"
+              />
+              <Input
+                id="newPassword"
+                label="New Password"
+                type="password"
+                required
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="At least 8 characters"
+              />
+              <Input
+                id="confirmPassword"
+                label="Confirm Password"
+                type="password"
+                required
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm your password"
+              />
+
+              <div className="space-y-1.5 text-left text-xs text-text-muted">
+                <p
+                  className={
+                    newPassword.length >= 8 ? 'text-green-400' : ''
+                  }
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4.5 12.75l6 6 9-13.5"
-                  />
-                </svg>
+                  {newPassword.length >= 8 ? '\u2713' : '\u2022'} Must be at
+                  least 8 characters
+                </p>
+                <p
+                  className={
+                    newPassword && newPassword === confirmPassword
+                      ? 'text-green-400'
+                      : ''
+                  }
+                >
+                  {newPassword && newPassword === confirmPassword
+                    ? '\u2713'
+                    : '\u2022'}{' '}
+                  Passwords must match
+                </p>
               </div>
-              <p className="text-sm text-gray-600">
-                Your password has been reset successfully.
-              </p>
-              <Link
-                to="/auth/login"
-                className="inline-block rounded-lg bg-[#dc4b1a] px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#c54318]"
-              >
-                Back to Sign In
-              </Link>
-            </div>
-          )}
 
-          {step !== 'done' && (
-            <div className="mt-4 text-center">
-              <Link
-                to="/auth/login"
-                className="text-sm text-[#dc4b1a] hover:underline"
-              >
-                Back to Sign In
-              </Link>
+              <Button type="submit" disabled={isLoading} className="w-full">
+                {isLoading ? 'Resetting...' : 'Reset password'}
+              </Button>
+            </form>
+            <Link
+              to="/auth/login"
+              className="mt-4 inline-block text-sm text-text-muted hover:text-text-secondary"
+            >
+              Back to log in
+            </Link>
+          </div>
+        )}
+
+        {/* Step 4: Success */}
+        {step === 'done' && (
+          <div className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
+              <CheckCircle2 size={24} className="text-green-400" />
             </div>
-          )}
-        </div>
+            <h1 className="mb-2 text-2xl font-bold text-text-primary">
+              Password reset
+            </h1>
+            <p className="mb-6 text-sm text-text-secondary">
+              Your password has been successfully reset.
+            </p>
+            <Link to="/auth/login" className="block">
+              <Button className="w-full">Continue</Button>
+            </Link>
+          </div>
+        )}
       </div>
-    </div>
+    </AuthLayout>
   )
 }
