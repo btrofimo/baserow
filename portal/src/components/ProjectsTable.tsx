@@ -9,8 +9,10 @@ import {
 } from '@tanstack/react-table'
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { StatusBadge } from './StatusBadge'
 import { PriorityBadge } from './PriorityBadge'
+import { RequestTypeTags } from './RequestTypeTags'
 
 interface Project {
   id: string
@@ -55,8 +57,11 @@ const columns: ColumnDef<Project>[] = [
     header: 'Request Type',
     accessorFn: (row) => {
       const val = row.fields['Request Type']
-      return Array.isArray(val) ? val.join(', ') : ''
+      return Array.isArray(val) ? val : []
     },
+    cell: ({ getValue }) => (
+      <RequestTypeTags types={getValue() as string[]} />
+    ),
   },
 ]
 
@@ -80,16 +85,16 @@ export function ProjectsTable({ data }: ProjectsTableProps) {
   })
 
   return (
-    <div>
+    <div className="rounded-lg border border-border-default overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-border-default">
+          <thead className="bg-bg-tertiary">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted cursor-pointer select-none"
                     onClick={header.column.getToggleSortingHandler()}
                   >
                     <div className="flex items-center gap-1">
@@ -107,11 +112,11 @@ export function ProjectsTable({ data }: ProjectsTableProps) {
               </tr>
             ))}
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y divide-border-default bg-bg-secondary">
             {table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className="hover:bg-gray-50 cursor-pointer"
+                className="cursor-pointer transition-colors hover:bg-bg-tertiary"
                 onClick={() =>
                   navigate({
                     to: '/projects/$projectId',
@@ -122,7 +127,7 @@ export function ProjectsTable({ data }: ProjectsTableProps) {
                 {row.getVisibleCells().map((cell) => (
                   <td
                     key={cell.id}
-                    className="px-6 py-4 whitespace-nowrap text-sm"
+                    className="whitespace-nowrap px-6 py-4 text-sm text-text-primary"
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
@@ -133,25 +138,27 @@ export function ProjectsTable({ data }: ProjectsTableProps) {
         </table>
       </div>
 
-      <div className="flex items-center justify-between px-6 py-3 border-t">
-        <span className="text-sm text-gray-600">
+      <div className="flex items-center justify-between border-t border-border-default bg-bg-secondary px-6 py-3">
+        <span className="text-sm text-text-muted">
           Page {table.getState().pagination.pageIndex + 1} of{' '}
           {table.getPageCount()}
         </span>
         <div className="flex gap-2">
           <button
-            className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+            className="flex items-center gap-1 rounded-lg border border-border-default px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-bg-tertiary disabled:opacity-50"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
+            <ChevronLeft size={14} />
             Previous
           </button>
           <button
-            className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+            className="flex items-center gap-1 rounded-lg border border-border-default px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-bg-tertiary disabled:opacity-50"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
             Next
+            <ChevronRight size={14} />
           </button>
         </div>
       </div>

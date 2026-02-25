@@ -1,21 +1,44 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Plus } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { listProjects } from '../../api/projects.functions'
 import { ProjectsTable } from '../../components/ProjectsTable'
+import { AppLayout } from '../../components/layout/AppLayout'
+import { Tabs } from '../../components/ui/Tabs'
+import { Button } from '../../components/ui/Button'
 
 export const Route = createFileRoute('/projects/')({
   component: ProjectsListPage,
 })
 
+const ACTIVE_STATUSES = [
+  'New Project',
+  'New Request',
+  'Submitted',
+  'In-Progress',
+  'In Review',
+  'RFI',
+  'Pending Inspection',
+  'Inspected',
+  'Report Generation',
+  'Estimate Generation',
+  'Document Generation',
+  'In Revision',
+]
+
+const COMPLETED_STATUSES = ['Completed', 'Accepted']
+const ARCHIVE_STATUSES = ['Archived', 'Withdrawn']
+
 function ProjectsListPage() {
-  const { isAuthenticated, idToken, user, logout } = useAuth()
+  const { isAuthenticated, idToken } = useAuth()
   const navigate = useNavigate()
+  const [activeTab, setActiveTab] = useState('active')
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate({ to: '/' })
+      navigate({ to: '/auth/login' })
     }
   }, [isAuthenticated, navigate])
 
@@ -25,87 +48,111 @@ function ProjectsListPage() {
     enabled: !!idToken,
   })
 
+  const allRecords = data?.records ?? []
+
+  const { activeProjects, completedProjects, archivedProjects } =
+    useMemo(() => {
+      const active = allRecords.filter((r) => {
+        const status = r.fields['Status'] as string | undefined
+        return !status || ACTIVE_STATUSES.includes(status)
+      })
+      const completed = allRecords.filter((r) =>
+        COMPLETED_STATUSES.includes(r.fields['Status'] as string)
+      )
+      const archived = allRecords.filter((r) =>
+        ARCHIVE_STATUSES.includes(r.fields['Status'] as string)
+      )
+      return {
+        activeProjects: active,
+        completedProjects: completed,
+        archivedProjects: archived,
+      }
+    }, [allRecords])
+
+  const filteredProjects =
+    activeTab === 'completed'
+      ? completedProjects
+      : activeTab === 'archive'
+        ? archivedProjects
+        : activeProjects
+
+  const tabs = [
+    { id: 'active', label: 'Active', count: activeProjects.length },
+    { id: 'completed', label: 'Completed', count: completedProjects.length },
+    { id: 'archive', label: 'Archive', count: archivedProjects.length },
+  ]
+
   if (!isAuthenticated) return null
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#dc4b1a]">
-              <span className="text-sm font-bold text-white">T</span>
-            </div>
-            <h1 className="text-xl font-bold text-gray-900">TCR Client Portal</h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">{user?.email}</span>
-            <button
-              onClick={logout}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </header>
+    <AppLayout>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-text-primary">Projects</h1>
+        <Link to="/projects/submit">
+          <Button className="flex items-center gap-1.5">
+            <Plus size={16} />
+            New Project
+          </Button>
+        </Link>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900">Your Projects</h2>
-          <Link
-            to="/projects/submit"
-            className="px-4 py-2 bg-[#dc4b1a] text-white rounded-lg text-sm font-medium hover:bg-[#c54318] transition-colors"
+      {isLoading && <ProjectsTableSkeleton />}
+
+      {error && (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4">
+          <p className="text-sm text-red-400">
+            Failed to load projects. Please try again.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 text-sm text-red-400 underline hover:text-red-300"
           >
-            Submit New Project
+            Retry
+          </button>
+        </div>
+      )}
+
+      {data && allRecords.length === 0 && (
+        <div className="py-16 text-center">
+          <p className="mb-4 text-text-muted">You have no projects yet.</p>
+          <Link to="/projects/submit">
+            <Button>Submit Your First Project</Button>
           </Link>
         </div>
+      )}
 
-        {isLoading && <ProjectsTableSkeleton />}
-        {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 p-4">
-            <p className="text-red-700 text-sm">
-              Failed to load projects. Please try again.
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-2 text-sm text-red-600 underline hover:text-red-800"
-            >
-              Retry
-            </button>
+      {data && allRecords.length > 0 && (
+        <>
+          <Tabs
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+          <div className="mt-4">
+            <ProjectsTable data={filteredProjects} />
           </div>
-        )}
-        {data && data.records.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-gray-500 mb-4">You have no projects yet.</p>
-            <Link
-              to="/projects/submit"
-              className="inline-block px-6 py-2 bg-[#dc4b1a] text-white rounded-lg text-sm font-medium hover:bg-[#c54318] transition-colors"
-            >
-              Submit Your First Project
-            </Link>
-          </div>
-        )}
-        {data && data.records.length > 0 && (
-          <ProjectsTable data={data.records} />
-        )}
-      </main>
-    </div>
+        </>
+      )}
+    </AppLayout>
   )
 }
 
 function ProjectsTableSkeleton() {
   return (
     <div className="animate-pulse">
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="h-10 bg-gray-100" />
+      <div className="overflow-hidden rounded-lg border border-border-default">
+        <div className="h-10 bg-bg-tertiary" />
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="flex gap-4 px-6 py-4 border-t border-gray-100">
-            <div className="h-4 w-20 rounded bg-gray-200" />
-            <div className="h-4 w-32 rounded bg-gray-200" />
-            <div className="h-4 w-24 rounded bg-gray-200" />
-            <div className="h-4 w-12 rounded bg-gray-200" />
-            <div className="h-4 w-16 rounded bg-gray-200" />
-            <div className="h-4 w-16 rounded bg-gray-200" />
+          <div
+            key={i}
+            className="flex gap-4 border-t border-border-default px-6 py-4"
+          >
+            <div className="h-4 w-20 rounded bg-bg-elevated" />
+            <div className="h-4 w-32 rounded bg-bg-elevated" />
+            <div className="h-4 w-24 rounded bg-bg-elevated" />
+            <div className="h-4 w-12 rounded bg-bg-elevated" />
+            <div className="h-4 w-16 rounded bg-bg-elevated" />
+            <div className="h-4 w-16 rounded bg-bg-elevated" />
           </div>
         ))}
       </div>
