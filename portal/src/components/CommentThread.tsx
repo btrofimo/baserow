@@ -1,4 +1,5 @@
 import { useForm } from '@tanstack/react-form'
+import { Send, Paperclip } from 'lucide-react'
 
 interface Comment {
   id: string
@@ -30,25 +31,28 @@ export function CommentThread({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900">Messages</h3>
-
-      <div className="space-y-3 max-h-96 overflow-y-auto">
+      <div className="max-h-96 space-y-3 overflow-y-auto">
         {comments.length === 0 && (
-          <p className="text-sm text-gray-500">No messages yet.</p>
+          <p className="text-sm text-text-muted">No messages yet.</p>
         )}
         {comments.map((comment) => (
-          <div key={comment.id} className="bg-gray-50 rounded-lg p-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm font-medium text-gray-700">
+          <div
+            key={comment.id}
+            className="rounded-lg bg-bg-tertiary p-3"
+          >
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-sm font-medium text-accent-orange">
                 {comment.fields.Author ?? 'Unknown'}
               </span>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-text-muted">
                 {comment.fields['Created At']
                   ? new Date(comment.fields['Created At']).toLocaleString()
                   : ''}
               </span>
             </div>
-            <p className="text-sm text-gray-600">{comment.fields.Body}</p>
+            <p className="text-sm text-text-secondary">
+              {comment.fields.Body}
+            </p>
           </div>
         ))}
       </div>
@@ -58,15 +62,22 @@ export function CommentThread({
           e.preventDefault()
           form.handleSubmit()
         }}
-        className="flex gap-2"
+        className="flex items-center gap-2"
       >
+        <button
+          type="button"
+          disabled
+          className="rounded-md p-2 text-text-muted opacity-50"
+        >
+          <Paperclip size={16} />
+        </button>
         <form.Field name="body">
           {(field) => (
             <input
               type="text"
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
-              className="flex-1 border rounded-lg px-3 py-2 text-sm"
+              className="flex-1 rounded-lg border border-border-default bg-bg-tertiary px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-border-focus focus:ring-2 focus:ring-accent-orange/20 focus:outline-none"
               placeholder="Type a message..."
             />
           )}
@@ -74,9 +85,9 @@ export function CommentThread({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-4 py-2 bg-[#dc4b1a] text-white rounded-lg text-sm font-medium hover:bg-[#c54318] disabled:opacity-50"
+          className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-orange text-white transition-colors hover:bg-accent-orange-hover disabled:opacity-50"
         >
-          Send
+          <Send size={16} />
         </button>
       </form>
     </div>
